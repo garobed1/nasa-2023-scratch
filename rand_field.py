@@ -2,7 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm, multivariate_normal
 from scipy.sparse import diags
+from scipy.interpolate import interp1d
 import copy
+import sys, os
+import json
 '''
 
 Find a way to parametrize a scalar profile that spans an envelope of uncertainty
@@ -57,46 +60,69 @@ def truncated_karhunen_loeve_expansion(z, eigval, eigvec):
 # import matplotlib
 # matplotlib.use('tkagg') 
 # generate distributed data from these distributions
-N = 100
-trunc = 5
+
+name = 'testprob'
+N = 33
+trunc = 15
 max_alt = 10000
 altitudes = np.linspace(0, max_alt, N)
 Ndat = 100
+Ndatplot = 100
 Ngen = 10
 means = np.log(np.linspace(1., 50., N))
 stdvs = np.linspace(3., 0.5, N)
+corrfrac = 1.
 # corr = max_alt/1. # correlation between adjacent points
-corrfrac = 1.5
 
-corr = corrfrac*max_alt
-data = np.zeros([N, Ndat])
-for i in range(N):
-    data[i,:] = norm.rvs(loc=means[i], scale=stdvs[i], size=Ndat)
-# import pdb; pdb.set_trace()
-plt.scatter(data, np.tile(altitudes, Ndat).reshape(Ndat, N).T)
-plt.savefig('altscatter.png', bbox_inches="tight")
-plt.clf()
+# options if we're pulling data
+prop = 'TEMP'
+if len(sys.argv) > 1:
+    dataname = sys.argv[1]
+    name = dataname.split('/')[-1]
 
-# now generate correlated paths from the same distributions
-# two point correlation function K(x1, x2) = e^-|x1 - x2|/corr
-# corrents = np.zeros(N-1)
-# for i in range(N-1):
-#     corrents[i] = np.exp(-abs(altitudes[i+1]-altitudes[i])/corr)
-# cov = diags([stdvs, corrents, corrents], [0, -1, 1]).toarray()
-cov = np.zeros([N,N])
-for i in range(N):
-    for j in range(N):
-        cov[i,j] = np.exp(-abs(altitudes[i]-altitudes[j])/corr)
+    with open(dataname) as fj:
+        fulldata = json.load(fj)
 
-datap = multivariate_normal.rvs(mean=np.zeros(N), cov=cov, size=Ndat).T
-datat = copy.deepcopy(datap)
-# scale by varying data stdvs
-for i in range(N):
-    datat[i,:] *= stdvs[i]
-    datat[i,:] += means[i]
-# import pdb; pdb.set_trace()
-plt.plot(datat, altitudes)
-plt.savefig('altpathsinit.png', bbox_inches="tight", dpi=500)
+    datap_raw = np.array(fulldata[prop]).T
+    altitudes_raw = np.array(fulldata['altitude']).T
+    Ndat = datap_raw.shape[1]
+
+    # find max alt
+    max_alt = np.max(altitudes_raw)
+
+    # need to interpolate
+    altitudes = np.linspace(0, max_alt, N)
+    # import pdb; pdb.set_trace()
+    datap = np.zeros([N, Ndat])
+    for i in range(Ndat):
+        datap[:,i] = np.interp(altitudes, altitudes_raw[:,i], datap_raw[:,i])
+
+    # get means, stdvs
+    means = np.mean(datap, axis=1)
+    stdvs = np.std(datap, axis=1)
+
+    datat = copy.deepcopy(datap)
+
+
+
+else: # generate own data
+    cov = np.zeros([N,N])
+    for i in range(N):
+        for j in range(N):
+            cov[i,j] = np.exp(-abs(altitudes[i]-altitudes[j])/corr)
+
+    datap = multivariate_normal.rvs(mean=np.zeros(N), cov=cov, size=Ndat).T
+    datat = copy.deepcopy(datap)
+
+    # scale by varying data stdvs
+    for i in range(N):
+        datat[i,:] *= stdvs[i]
+        datat[i,:] += means[i]
+        
+plt.plot(datat[:,:Ndatplot], altitudes)
+plt.xlabel(prop)
+plt.ylabel('Altitude (1000 ft)')
+plt.savefig(f'{name}_{prop}_pathsinit.png', bbox_inches="tight", dpi=500)
 plt.clf()
 
 
@@ -117,15 +143,19 @@ for i in range(trunc):
 
 pathsgen = truncated_karhunen_loeve_expansion(datag, eigval, eigvec)
 pathsgent = copy.deepcopy(pathsgen)
+
 # shift by means
 for i in range(N):
+    pathsgent[i,:] /= stdvs[i]
     pathsgent[i,:] += means[i]
 
 plt.plot(pathsgent, altitudes)
-plt.savefig('altpathsgen.png', bbox_inches="tight", dpi=500)
+plt.xlabel(prop)
+plt.ylabel('Altitude (1000 ft)')
+plt.savefig(f'{name}_{prop}_t{trunc}_pathsgen.png', bbox_inches="tight", dpi=500)
 plt.clf()
 
-# import pdb; pdb.set_trace()
+import pdb; pdb.set_trace()
 
 
 
