@@ -15,6 +15,7 @@ Follow this convention:
 # Var_Name Var_Value
 TEMP_path_0 T0
 TEMP_path_1 T1
+
 HUMIDITY_path_0 H0
 HUMIDITY_path_1 H1
 """
@@ -26,16 +27,21 @@ HUMIDITY_path_1 H1
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--verbose', action='store_true') 
+parser.add_argument('-p', '--plot', action='store_true') 
 parser.add_argument('-n', '--numpoints', default=33) 
 args = parser.parse_args()
 verbose = args.verbose
 N = args.numpoints
+pflag = args.plot
 proplist = ['TEMP', 'HUMIDITY', 'PRESSURE', 'WINDX', 'WINDY']
 
 root = os.getcwd()
 quest_file = 'QUEST.dat'
 data_file = 'fulldata.json'
 case_dir = f'{root}/cases'
+
+if pflag:
+    import matplotlib.pyplot as plt
 
 if verbose:
     print(f"Root dir: {root}")
@@ -65,6 +71,7 @@ for prop in proplist:
     casenumlist = []
     casecounter = 0
     for case in os.listdir(case_dir):
+        casecounter += 1
         if os.path.isdir(case_dir + '/' + case):
             if verbose:
                 print(f"Generating {prop} profile for {case}")
@@ -87,7 +94,7 @@ for prop in proplist:
                     trunc = lc
 
                 if trunc == 0:
-                    pass
+                    continue
 
                 datag = np.zeros([trunc, 1])
                 for line in cf:
@@ -111,7 +118,21 @@ for prop in proplist:
             with open(case_dir + '/' + case + '/' + f'{prop}_profile.txt' , 'w') as wf:
                 for i in range(N):
                     wf.write(f'{altitudes[i]} {pathgen[i][0]}\n')
+            
+            if pflag and trunc:
+                if all(datag == 0.):
+                    plt.plot(pathgen, altitudes, 'k-', linewidth=1.6, zorder=999999)
+                else:
+                    plt.plot(pathgen, altitudes,  '-', linewidth=1.0)
 
+    if pflag and trunc:
+        plt.plot([], [], '-', linewidth=1.0,  label = 'Synthetic Data (QUEST)')
+        plt.plot([], [], 'k-', linewidth=1.6,  label = 'path at center index')
+        plt.xlabel(prop)
+        plt.ylabel('Altitude (1000 ft)')
+        plt.legend()
+        plt.savefig(f'{root}/{prop}_t{trunc}_{casecounter}_cases_pathsgen_QUEST.png', bbox_inches="tight", dpi=500)
+        plt.clf()
 
 
 
