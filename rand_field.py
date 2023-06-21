@@ -39,7 +39,8 @@ def unbiased_sample_cov_estimator(datat, norm = True):
     return means, mat
 
 # produce 
-def truncated_karhunen_loeve_expansion(z, eigval, eigvec):
+def truncated_karhunen_loeve_expansion(z, means, eigval, eigvec, prop):
+    # prop allows for specific variable transformation/post processing
 
     trunc, Ngen = z.shape
     N = copy.deepcopy(eigval.shape[0])
@@ -57,11 +58,20 @@ def truncated_karhunen_loeve_expansion(z, eigval, eigvec):
         # import pdb; pdb.set_trace()
         W += np.outer(z[i,:], np.sqrt(eigvalt[i])*eigvect[:, i]).T
 
+    # shift by means
+    for i in range(N):
+        W[i,:] += means[i]
+    
+    # humidity post processing
+    if prop == 'HUMIDITY':
+        W *= W
+        W = np.clip(W, a_min=None, a_max=100.)
+
     return W
 
 
 
-def preprocess_data(datapath, N, prop):
+def preprocess_data(datapath, prop, N=0):
     
     name = datapath.split('/')[-1]
 
@@ -72,22 +82,32 @@ def preprocess_data(datapath, N, prop):
     altitudes_raw = np.array(fulldata['altitude']).T
     Ndat = datap_raw.shape[1]
 
+
     # find max alt
     max_alt = np.max(altitudes_raw)
 
     # need to interpolate
-    altitudes = np.linspace(0, max_alt, N)
+    if N:
+        altitudes = np.linspace(0, max_alt, N)
+    else:
+        #EDIT: instead of linspace, take the average of each measured altitude
+        altitudes = np.mean(altitudes_raw, axis=1)
+        N = altitudes.shape[0]
+
     # import pdb; pdb.set_trace()
     datap = np.zeros([N, Ndat])
     for i in range(Ndat):
         datap[:,i] = np.interp(altitudes, altitudes_raw[:,i], datap_raw[:,i])
+        datap[:,i] = interp1d(altitudes_raw[:,i], datap_raw[:,i], fill_value='extrapolate')(altitudes)
 
+    # import pdb; pdb.set_trace()
+    # transform to sqrt(HUMIDITY) for KL purposes
+    if prop == "HUMIDITY":
+        datap = np.clip(datap, 0., None)
+        datap = np.sqrt(datap)
     # get means, stdvs
     means = np.mean(datap, axis=1)
     stdvs = np.std(datap, axis=1)
-
-
-    # already do this in covariance estimator
 
     return altitudes, datap, means, stdvs, name
 
@@ -141,8 +161,9 @@ if __name__ == '__main__':
     # preprocess data
     if len(sys.argv) > 1:
         datapath = sys.argv[1]
-        altitudes, datat, means, stdvs, name = preprocess_data(datapath, N, prop)
+        altitudes, datat, means, stdvs, name = preprocess_data(datapath, prop)
         Ndat = datat.shape[1]
+        N = datat.shape[0]
     else: # generate own data
         cov = np.zeros([N,N])
         for i in range(N):
@@ -168,14 +189,13 @@ if __name__ == '__main__':
         datag[i,:] = norm.rvs(size=Ngen, scale=gstd[i])
 
     # generate new paths
-    pathsgen = truncated_karhunen_loeve_expansion(datag, eigval, eigvec)
-    pathsgent = copy.deepcopy(pathsgen)
+    pathsgent = truncated_karhunen_loeve_expansion(datag, means, eigval, eigvec, prop)
 
-    stp = np.std(pathsgen, axis=1)
-    # shift by means
-    for i in range(N):
-        # pathsgent[i,:] /= np.sqrt(stp[i])
-        pathsgent[i,:] += means[i]
+    # transform some humidity back from square root space
+    if prop == 'HUMIDITY':
+        datat *= datat
+        means = np.mean(datat, axis=1)
+        stdvs = np.std(datat, axis=1)
 
     meanpaths = np.mean(pathsgent, axis=1)
     stdvpaths = np.std(pathsgent, axis=1)

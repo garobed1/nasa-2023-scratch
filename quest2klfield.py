@@ -28,16 +28,25 @@ HUMIDITY_path_1 H1
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--verbose', action='store_true') 
 parser.add_argument('-p', '--plot', action='store_true') 
-parser.add_argument('-n', '--numpoints', default=33) 
+parser.add_argument('-d', '--datadir', action='store')
+# MODEL HUMIDITY FROM TEMPERATURE/DEW POINT
+# parser.add_argument('-H', '--modelhumidity', action='store_true')
+parser.add_argument('-n', '--numpoints', default=0) # if 0, use mean of altitudes 
 args = parser.parse_args()
 verbose = args.verbose
-N = args.numpoints
+Ngrid = args.numpoints
 pflag = args.plot
+datadir = args.datadir
+# mhflag = args.modelhumidity
+
 proplist = ['TEMP', 'HUMIDITY', 'PRESSURE', 'WINDX', 'WINDY']
 
 root = os.getcwd()
 quest_file = 'QUEST.dat'
+
 data_file = 'fulldata.json'
+if datadir is not None:
+    data_file = datadir
 case_dir = f'{root}/cases'
 
 if pflag:
@@ -49,17 +58,19 @@ if verbose:
 
 # first, generate the KL expansion
 if verbose:
-    print(f"Preprocessing data, {N} points per property")
+    print(f"Preprocessing data ...")
 
 # begin loop over properties
 for prop in proplist:
     trunc = None # different properties may call for different numbers of vars
 
-    if verbose:
-        print(f"Processing {prop}")
     
-    altitudes, datat, means, stdvs, name = preprocess_data(data_file, N, prop)
+    altitudes, datat, means, stdvs, name = preprocess_data(data_file, prop, Ngrid)
     Ndat = datat.shape[1]
+    N = datat.shape[0]
+
+    if verbose:
+        print(f"Processing {prop}, {N} altitudes")
 
     # get kl coefficients
     eigval, eigvec = get_kl_coefficients(datat, norm=False)
@@ -107,12 +118,7 @@ for prop in proplist:
                         pass
             
             # now produce the path
-            pathgen = truncated_karhunen_loeve_expansion(datag, eigval, eigvec)
-            
-            # shift by means
-            for i in range(N):
-                # pathsgent[i,:] /= np.sqrt(stp[i])
-                pathgen[i,:] += means[i]
+            pathgen = truncated_karhunen_loeve_expansion(datag, means, eigval, eigvec, prop)
             
             # write to file
             with open(case_dir + '/' + case + '/' + f'{prop}_profile.txt' , 'w') as wf:
