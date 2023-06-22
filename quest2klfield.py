@@ -20,8 +20,6 @@ HUMIDITY_path_0 H0
 HUMIDITY_path_1 H1
 """
 
-# start with one property for now
-
 # before anything, first estimate the covariance of the data
 # and find its eigenpairs
 

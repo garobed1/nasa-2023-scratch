@@ -130,7 +130,7 @@ if __name__ == '__main__':
     N = 33
     trunc = 4
     # options if we're pulling data
-    prop = 'HUMIDITY' #'TEMP'
+    prop = 'TEMP' #'TEMP'
     #AND DATA AS COMMAND LINE ARGUMENT
 
     Ndatplot = 100
