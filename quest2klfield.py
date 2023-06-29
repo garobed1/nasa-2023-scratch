@@ -27,6 +27,10 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--verbose', action='store_true') 
 parser.add_argument('-p', '--plot', action='store_true') 
 parser.add_argument('-d', '--datadir', action='store')
+
+# exclude a number of data points at the upper atmosphere 
+# last 4 points constitute data above ~61000 feet
+parser.add_argument('-e', '--exclude_upper', action='store', type=int, default=0)
 # MODEL HUMIDITY FROM TEMPERATURE/DEW POINT
 # parser.add_argument('-H', '--modelhumidity', action='store_true')
 parser.add_argument('-n', '--numpoints', default=0) # if 0, use mean of altitudes 
@@ -35,6 +39,7 @@ verbose = args.verbose
 Ngrid = args.numpoints
 pflag = args.plot
 datadir = args.datadir
+exclude = args.exclude_upper
 # mhflag = args.modelhumidity
 
 proplist = ['TEMP', 'HUMIDITY', 'PRESSURE', 'WINDX', 'WINDY']
@@ -64,6 +69,14 @@ for prop in proplist:
 
     
     altitudes, datat, means, stdvs, name = preprocess_data(data_file, prop, Ngrid)
+    
+    # if exclude > 0, remove upper indices
+    if exclude > 0:
+        altitudes = altitudes[:-exclude]
+        datat = datat[:-exclude, :]
+        means = means[:-exclude]
+        stdvs = stdvs[:-exclude]
+
     Ndat = datat.shape[1]
     N = datat.shape[0]
 

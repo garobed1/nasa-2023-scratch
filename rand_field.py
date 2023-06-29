@@ -36,14 +36,29 @@ def unbiased_sample_cov_estimator(datat, norm = True):
         work = datat[:,j] - means
         mat += np.outer(work, work)/fac
 
+    if 0:
+        from matplotlib import colors
+        from matplotlib import cm
+        # make indices altitude?
+        cmap = cm.coolwarm
+        plt.matshow(mat, cmap=cmap, norm=colors.CenteredNorm())
+        plt.colorbar()
+        plt.savefig('covmat.png', bbox_inches='tight')
+        plt.clf()
+        plt.scatter(np.arange(0,N), np.linalg.eig(mat)[0])
+        plt.xlabel('eig ind')
+        plt.ylabel('eigenval')
+        plt.savefig('eigdecay.png', bbox_inches='tight')
+        plt.clf()
+        import pdb; pdb.set_trace()
     return means, mat
 
 # produce 
-def truncated_karhunen_loeve_expansion(z, means, eigval, eigvec, prop):
+def truncated_karhunen_loeve_expansion(z, means, eigval, eigvec, prop=None):
     # prop allows for specific variable transformation/post processing
 
     trunc, Ngen = z.shape
-    N = copy.deepcopy(eigval.shape[0])
+    N = copy.deepcopy(eigvec.shape[0])
 
     # reorder
     order = eigval.argsort()[::-1]
@@ -55,7 +70,6 @@ def truncated_karhunen_loeve_expansion(z, means, eigval, eigvec, prop):
 
     W = np.zeros([N, Ngen])
     for i in range(trunc):
-        # import pdb; pdb.set_trace()
         W += np.outer(z[i,:], np.sqrt(eigvalt[i])*eigvect[:, i]).T
 
     # shift by means
