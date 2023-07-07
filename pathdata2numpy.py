@@ -9,7 +9,25 @@ import numpy as np
 import json
 
 def read_paths(source_dir, ext='.att', prefix='EDW_ERA5_', 
-                props=['TEMP', 'WINDX', 'WINDY', 'HUMIDITY', 'PRESSURE'],  write_to_json=False):
+                props=['TEMP', 'WINDX', 'WINDY', 'HUMIDITY', 'PRESSURE'],  
+                times=['01','02','03','04','05','06','07','08','09','10','11','12','13',
+            '14','15','16','17','18','19','20','21','22','23'],
+                days=['01','02','03','04','05','06','07','08','09','10','11','12','13',
+            '14','15','16','17','18','19','20','21','22','23','24','25','26','27',
+            '28','29','30','31'],
+                months=['01','02','03','04','05','06','07','08','09','10','11', '12'],
+                years=np.arange(2001,2023),
+                filename='fulldata.json',
+                write_to_json=False):
+
+    # get names of files corresponding to dates and times
+    valid_files = []
+    for y in years:
+        for m in months:
+            for d in days:
+                for h in times:
+                    s = f'{prefix}{y}{m}{d}{h}{ext}'
+                    valid_files.append(s)
 
     # count number of files
     attcounter = 0
@@ -17,7 +35,7 @@ def read_paths(source_dir, ext='.att', prefix='EDW_ERA5_',
     daystrlist = []
     daynumlist = []
     for file in os.listdir(source_dir):
-        if file.endswith('.att'):
+        if file in valid_files:
             attcounter += 1
             daystrlist.append(file)
             date = int(file.split('_')[-1].split('.')[0])
@@ -86,8 +104,8 @@ def read_paths(source_dir, ext='.att', prefix='EDW_ERA5_',
                 fulldata_list[k] = v.tolist() 
             else:
                 fulldata_list[k] = v
-
-        with open('fulldata.json', 'w') as fj:
+        import pdb; pdb.set_trace()
+        with open(filename, 'w') as fj:
             json.dump(fulldata_list, fj)
 
         return 0
@@ -99,7 +117,13 @@ def read_paths(source_dir, ext='.att', prefix='EDW_ERA5_',
 # test out function here
 if __name__ == '__main__':
     source_dir = sys.argv[1]
+    months = ['08']
+    times = ['18']
 
-    read_paths(source_dir, write_to_json=True)
+    read_paths(source_dir, 
+        months=months,
+        times=times,
+        filename=f'partial_{months[0]}{times[0]}_data.json',
+        write_to_json=True)
 
      
