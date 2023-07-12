@@ -10,7 +10,7 @@ import json
 
 def read_paths(source_dir, ext='.att', prefix='EDW_ERA5_', 
                 props=['TEMP', 'WINDX', 'WINDY', 'HUMIDITY', 'PRESSURE'],  
-                times=['01','02','03','04','05','06','07','08','09','10','11','12','13',
+                times=['00','01','02','03','04','05','06','07','08','09','10','11','12','13',
             '14','15','16','17','18','19','20','21','22','23'],
                 days=['01','02','03','04','05','06','07','08','09','10','11','12','13',
             '14','15','16','17','18','19','20','21','22','23','24','25','26','27',
@@ -97,6 +97,30 @@ def read_paths(source_dir, ext='.att', prefix='EDW_ERA5_',
                 glc += 1
         gfc += 1
 
+    if 1:
+        import matplotlib.pyplot as plt
+        from matplotlib import cm
+        from matplotlib import colors
+        cmap = cm.coolwarm
+        altind = 10
+        temp_alt = fulldata['TEMP'][:,altind]
+        hum_alt = fulldata['HUMIDITY'][:,altind]
+        mat = np.cov(temp_alt, hum_alt)
+        plt.scatter(temp_alt, hum_alt)
+        plt.title(f"Temp and Humidity correlation at {fulldata['altitude'][0,altind]:.2f} thousand feet")
+        plt.xlim(20., 110.)
+        plt.ylim(0., 100.)
+        plt.xlabel('Temp (F)')
+        plt.ylabel('Humidity (%)')
+        plt.savefig(f"temp_hum_corr_{filename.split('.')[0]}.png", bbox_inches='tight')
+        plt.clf()
+        # plt.matshow(mat, cmap=cmap, norm=colors.CenteredNorm())
+        # plt.colorbar()
+        # plt.savefig('temp_hum_mat.png', bbox_inches='tight')
+        # plt.clf()
+        # import pdb; pdb.set_trace()
+
+
     if write_to_json:
         fulldata_list = {}
         for k,v in fulldata.items():
@@ -104,7 +128,6 @@ def read_paths(source_dir, ext='.att', prefix='EDW_ERA5_',
                 fulldata_list[k] = v.tolist() 
             else:
                 fulldata_list[k] = v
-        import pdb; pdb.set_trace()
         with open(filename, 'w') as fj:
             json.dump(fulldata_list, fj)
 
@@ -120,10 +143,16 @@ if __name__ == '__main__':
     months = ['08']
     times = ['18']
 
+    # read_paths(source_dir, 
+    #     filename=f'fulldata.json',
+    #     write_to_json=True)
+
     read_paths(source_dir, 
         months=months,
         times=times,
         filename=f'partial_{months[0]}{times[0]}_data.json',
         write_to_json=True)
+
+
 
      

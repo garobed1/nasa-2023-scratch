@@ -33,14 +33,17 @@ parser.add_argument('-d', '--datadir', action='store')
 # if given, don't convert humidity to dew point temperature, create KL, then convert back 
 # not recommended, better to convert to dew point using corresponding temp
 parser.add_argument('-hd', '--donthumiditytodew', action='store_true')
+
+# write mean, sigma, m+1s, m-1s alongside each path (Quest likes this format)
+parser.add_argument('-ws', '--writeoriginalstats', action='store_true')
+
 # exclude a number of data points at the upper atmosphere 
 # last 4 points constitute data above ~61000 feet
 parser.add_argument('-e', '--exclude_upper', action='store', type=int, default=0)
 # if true, measure mean, stdv, and PDF error (at each altitude)
 parser.add_argument('-m', '--measure_error', action='store_true')
-# MODEL HUMIDITY FROM TEMPERATURE/DEW POINT
-# parser.add_argument('-H', '--modelhumidity', action='store_true')
-parser.add_argument('-n', '--numpoints', default=0) # if 0, use mean of altitudes 
+
+parser.add_argument('-n', '--numpoints', default=0) # if 0, use mean of altitudes as grid
 args = parser.parse_args()
 verbose = args.verbose
 Ngrid = args.numpoints
@@ -49,9 +52,14 @@ datadir = args.datadir
 exclude = args.exclude_upper
 hd = args.donthumiditytodew
 me = args.measure_error
+ws = args.writeoriginalstats
 # mhflag = args.modelhumidity
 
-proplist = ['TEMP', 'HUMIDITY', 'PRESSURE', 'WINDX', 'WINDY']
+trueproplist = ['TEMP', 'HUMIDITY', 'PRESSURE', 'WINDX', 'WINDY']
+proplist = ['TEMPHUMID', 'TEMP', 'HUMIDITY', 'PRESSURE', 'WINDX', 'WINDY']
+# proplist = ['TEMPHUMID']
+# 'TEMPHUMID' simulates both TEMP and HUMIDITY/DEW POINT together, do not use
+# with TEMP or HUMIDITY
 
 root = os.getcwd()
 quest_file = 'QUEST.dat'
@@ -60,9 +68,16 @@ data_file = 'fulldata.json'
 if datadir is not None:
     data_file = datadir
 case_dir = f'{root}/cases'
+Ngen = len(os.listdir(case_dir))
+
 
 if pflag:
     import matplotlib.pyplot as plt
+    # store true, unconverted values in dict format
+    ppathgent = {}
+    d1,d2,d3,d4,d5 = preprocess_data(data_file, 'HUMIDITY', Ngrid)
+    for item in trueproplist:
+        ppathgent[item] = np.zeros([d2.shape[0]-exclude, Ngen])
 
 if verbose:
     print(f"Root dir: {root}")
@@ -77,12 +92,16 @@ for prop in proplist:
     trunc = None # different properties may call for different numbers of vars
 
     # EDF is Edwards AFB    
-    altitudes, datat, means, stdvs, name = preprocess_data(data_file, prop, Ngrid)
-    
+    if prop == 'TEMPHUMID':
+        altitudes, datat, means, stdvs, name = preprocess_data(data_file, 'HUMIDITY', Ngrid)
+    else:
+        altitudes, datat, means, stdvs, name = preprocess_data(data_file, prop, Ngrid)
+
     # if prop is humidity, convert to dew point, but get temp first
-    if prop =='HUMIDITY' and not hd:
+    if ((prop == 'HUMIDITY' and not hd) or prop == 'TEMPHUMID') :
         # from Extract_statistics.py @author lwhite7 
         # hard clip negative humidities to minimum abs val
+        N, Ndat = datat.shape
         minclip = np.min(abs(datat))
         for i in range(N):
             for j in range(Ndat):
@@ -100,6 +119,21 @@ for prop in proplist:
         datat = dew_pt
         means = np.mean(datat, axis=1)
         stdvs = np.std(datat, axis=1)
+        
+        if 0:
+            mpm1s = np.array([[means+stdvs], [means-stdvs]]).T.reshape([N, 2])
+            plt.plot(datat, altitudes, '-', linewidth=1.0)
+            plt.plot([], [], '-', linewidth=1.0,  label = 'Original Data')
+            plt.plot(means, altitudes, 'k-', linewidth=1.6)
+            plt.plot([], [], 'k-', linewidth=1.6, label = r'$\mu$')
+            plt.plot(mpm1s, altitudes, 'k--', linewidth=1.6)
+            plt.plot([], [], 'k--', linewidth=1.6, label = r'$\mu \pm 1\sigma$')
+            plt.legend()
+            plt.xlabel('DEWPT')
+            plt.ylabel('Altitude (1000 ft)')
+            plt.savefig(f'{name}_DEWPT_pathsinit.png', bbox_inches="tight", dpi=500)
+            plt.clf()
+            import pdb; pdb.set_trace()
 
     # if exclude > 0, remove upper indices
     if exclude > 0:
@@ -107,12 +141,27 @@ for prop in proplist:
         datat = datat[:-exclude, :]
         means = means[:-exclude]
         stdvs = stdvs[:-exclude]
+        if prop == 'TEMPHUMID':
+            AT = AT[:-exclude]
+            DTT = DTT[:-exclude, :]
+            MT = MT[:-exclude]
+            ST = ST[:-exclude]
+
+
+    # if TEMPHUMID, concatenate temp and dew point data
+    if prop == 'TEMPHUMID':
+        altitudes = np.append(AT, altitudes, axis=0)
+        datat = np.append(DTT, datat, axis=0)
+        means = np.append(MT, means, axis=0)
+        stdvs = np.append(ST, stdvs, axis=0)
 
     Ndat = datat.shape[1]
     N = datat.shape[0]
 
     if verbose:
         print(f"Processing {prop}, {N} altitudes")
+
+
 
     # get kl coefficients
     eigval, eigvec = get_kl_coefficients(datat, norm=False)
@@ -124,15 +173,16 @@ for prop in proplist:
     for case in os.listdir(case_dir):
         casecounter += 1
 
-    if me:
-        pathgent = np.zeros([N, casecounter])
+    # if me:
+    pathgent = np.zeros([N, casecounter]) # these include dew conversions
 
     casestrlist = []
     casenumlist = []
+
     for case in os.listdir(case_dir):
         if os.path.isdir(case_dir + '/' + case):
-            if verbose:
-                print(f"Generating {prop} profile for {case}")
+            # if verbose:
+            #     print(f"Generating {prop} profile for {case}")
             casenum = int(case.split('.')[-1])
             cur_file = case_dir + '/' + case + '/' + quest_file
 
@@ -167,22 +217,36 @@ for prop in proplist:
             # now produce the path
             pathgen = truncated_karhunen_loeve_expansion(datag, means, eigval, eigvec, prop)
             
-            if pflag and trunc:
-                if all(datag == 0.):
-                    plt.plot(pathgen, altitudes, 'k-', linewidth=1.6, zorder=999999)
-                else:
-                    plt.plot(pathgen, altitudes,  '-', linewidth=1.0)
+            # if pflag and trunc:
+            #     if all(datag == 0.):
+            #         plt.plot(pathgen, altitudes, 'k-', linewidth=1.6, zorder=999999)
+            #     else:
+            #         plt.plot(pathgen, altitudes,  '-', linewidth=1.0)
 
-            # hold on to the path if we're measuring error
-            if me:
-                pathgent[:, casenum] = pathgen[:,0]
+
+            # store raw path
+            pathgent[:, casenum] = pathgen[:,0]
 
             # now convert dew point and temp back to humidity, and clip values over 100
             # actually, what temperature would we use to convert back?
-            if prop =='HUMIDITY' and not hd:
+            if (prop =='HUMIDITY' and not hd) or prop == 'TEMPHUMID':
                 # from Extract_statistics.py @author lwhite7 
+
+                # If combining temp and humidity, get temp from the data we just got
+                # Write temp here immediately, don't do it for the other cases
+                if prop == 'TEMPHUMID':
+                    split_ind = int(N/2)
+                    temp_use = pathgen[:split_ind]
+                    dew_pt_use = pathgen[split_ind:]
+                    with open(case_dir + '/' + case + '/' + f'TEMP_profile.txt' , 'w') as wf:
+                        for i in range(split_ind):
+                            wf.write(f'{altitudes[i]} {temp_use[i]}\n')
+                    ppathgent['TEMP'][:, casenum] = temp_use[:,0]
+                    temp_k = 5/9*(temp_use+459.67) 
+                    temp_k = temp_k[:,0]
+
                 # If we're modeling temperature as well, convert using the corresponding temp values
-                if os.path.isfile(case_dir + '/' + case +'/TEMP_profile.txt'):
+                elif os.path.isfile(case_dir + '/' + case +'/TEMP_profile.txt'):
                     temp_k = np.zeros(N)
                     with open(case_dir + '/' + case + '/' + f'TEMP_profile.txt' , 'r') as wf:
                         pc = 0
@@ -190,40 +254,140 @@ for prop in proplist:
                             temp_f = float(line.split()[1])
                             temp_k[pc] = 5/9*(temp_f+459.67)
                             pc += 1
-
+                    dew_pt_use = pathgen
+                
                 # Otherwise, use the mean temperature MT, and write MT to every TEMP_profile.txt
                 else:
+                    # temp_use = MT+1*ST # mean + 1 sigma seems to work better e.g. higher temps work better 
+                    temp_use = MT # mean + 1 sigma seems to work better e.g. higher temps work better 
                     with open(case_dir + '/' + case + '/' + f'TEMP_profile.txt' , 'w') as wf:
                         for i in range(N):
-                            wf.write(f'{altitudes[i]} {MT[i]}\n')
-                    temp_k = 5/9*(MT+459.67)
+                            wf.write(f'{altitudes[i]} {temp_use[i]}\n')
+                    temp_k = 5/9*(temp_use+459.67) 
+                    dew_pt_use = pathgen
+                
                 #Convert pathsgen dew temp to humidity
-                dew_pt_K = (5/9*(pathgen+459.67)).flatten() # convert to kelvin
-                pathgen = 100*(6.112*np.exp(17.67*(dew_pt_K-273.15)/(dew_pt_K-29.65))/(6.112*np.exp(17.67*(temp_k-273.15)/(temp_k-29.65))))
-                pathgen = np.atleast_2d(pathgen).T
+                dew_pt_K = (5/9*(dew_pt_use+459.67)).flatten() # convert to kelvin
+                work = 100*(6.112*np.exp(17.67*(dew_pt_K-273.15)/(dew_pt_K-29.65))/(6.112*np.exp(17.67*(temp_k-273.15)/(temp_k-29.65))))
+                # if any(work > 100.):
+                #     import pdb; pdb.set_trace()
+                work = np.atleast_2d(work).T[:,0]
+                ppathgent['HUMIDITY'][:, casenum] = work
+                # import pdb; pdb.set_trace()
+
+                if prop != 'TEMPHUMID':
+                    pathgen = work
+                else:
+                    pathgen = np.append(temp_use, work)
+                    # import pdb; pdb.set_trace()
+                    with open(case_dir + '/' + case + '/' + f'HUMIDITY_profile.txt' , 'w') as wf:
+                        for i in range(split_ind):
+                            wf.write(f'{altitudes[i]} {work[i]}\n')
+
             # if pflag and trunc:
-            #     if all(datag == 0.):
-            #         plt.plot(pathgen, altitudes, 'k-', linewidth=1.6, zorder=999999)
-            #     else:
-            #         plt.plot(pathgen, altitudes,  '-', linewidth=1.0)
+            #     # if all(datag == 0.):
+            #     #     import pdb; pdb.set_trace()
+            #     #     plt.plot(pathgen, altitudes, 'k-', linewidth=1.6, zorder=999999)
+            #     # else:
+            #     plt.plot(pathgen, altitudes,  '-', linewidth=1.0)
+
+
             # write to file
-            with open(case_dir + '/' + case + '/' + f'{prop}_profile.txt' , 'w') as wf:
-                for i in range(N):
-                    wf.write(f'{altitudes[i]} {pathgen[i][0]}\n')
+            if not ((prop =='HUMIDITY' and not hd) or prop == 'TEMPHUMID'):
+                ppathgent[prop][:, casenum] = pathgen[:,0]
+                with open(case_dir + '/' + case + '/' + f'{prop}_profile.txt' , 'w') as wf:
+                    for i in range(N):
+                        wf.write(f'{altitudes[i]} {pathgen[i][0]}\n')
 
 
 
     if pflag and trunc:
+        import xml.etree.ElementTree as ET
+
         pname = prop
-        plt.plot([], [], '-', linewidth=1.0,  label = 'Synthetic Data (QUEST)')
-        plt.plot([], [], 'k-', linewidth=1.6,  label = 'path at center index')
-        if prop =='HUMIDITY' and not hd:
-            pname = 'DEW POINT TEMP'
-        plt.xlabel(pname)
-        plt.ylabel('Altitude (1000 ft)')
-        plt.legend()
-        plt.savefig(f'{root}/{pname}_t{trunc}_{casecounter}_cases_pathsgen_QUEST.png', bbox_inches="tight", dpi=500)
-        plt.clf()
+
+        pproplist = [prop]
+        if prop == 'TEMPHUMID':
+            pproplist = ['TEMP', 'HUMIDITY']
+
+            from matplotlib import cm
+
+
+            # scatter plot
+            cmap = cm.coolwarm
+            altind = 10
+            temp_alt = ppathgent['TEMP'][altind,:200]
+            hum_alt = ppathgent['HUMIDITY'][altind,:200]
+            # mat = np.cov(temp_alt, hum_alt)
+            # import pdb; pdb.set_trace()
+            plt.scatter(temp_alt, hum_alt)
+            plt.xlim(20., 110.)
+            plt.ylim(0., 100.)
+            plt.title(f"Temp and Humidity correlation at {altitudes[altind]:.2f} thousand feet")
+            plt.xlabel('Temp (F)')
+            plt.ylabel('Humidity (%)')
+            plt.savefig(f"{root}/{prop}_t{trunc}_{casecounter}_temp_hum_corr.png", bbox_inches='tight')
+            plt.clf()
+
+
+        for pprop in pproplist:
+            #retrieve data in case we lost it somehow
+            paltitudes, pdatat, pmeans, pstdvs, pname = preprocess_data(data_file, pprop, Ngrid)
+            if exclude > 0:
+                paltitudes = paltitudes[:-exclude]
+                pdatat = pdatat[:-exclude, :]
+                pmeans = pmeans[:-exclude]
+                pstdvs = pstdvs[:-exclude]
+            
+            Ntrue = pdatat.shape[0]
+
+            pmeanpaths = np.mean(ppathgent[pprop], axis=1)
+            pstdvpaths = np.std(ppathgent[pprop], axis=1)
+
+            mpm1s = np.array([[pmeans+pstdvs], [pmeans-pstdvs]]).T.reshape([Ntrue, 2])
+            mpm1spaths = np.array([[pmeanpaths+pstdvpaths], [pmeanpaths-pstdvpaths]]).T.reshape([Ntrue, 2])
+            plt.plot(ppathgent[pprop], paltitudes,  '-', linewidth=1.0)
+            plt.plot(pmeans, paltitudes, 'k-', linewidth=1.6)
+            plt.plot([], [], 'k-', linewidth=1.6, label = r'$\mu$ (Original)')
+            plt.plot(mpm1s, paltitudes, 'k--', linewidth=1.6)
+            plt.plot([], [], 'k--', linewidth=1.6, label = r'$\mu \pm 1\sigma$ (Original)')
+            plt.plot(pmeanpaths, paltitudes, 'b-', linewidth=1.6)
+            plt.plot([], [], 'b-', linewidth=1.6, label = r'$\mu$ (Synthetic)')
+            plt.plot(mpm1spaths, paltitudes, 'b--', linewidth=1.6)
+            plt.plot([], [], 'b--', linewidth=1.6, label = r'$\mu \pm 1\sigma$ (Synthetic)')
+            plt.plot([], [], '-', linewidth=1.0,  label = 'Synthetic Data (QUEST)')
+            # plt.plot([], [], 'k-', linewidth=1.6,  label = 'path at center index')
+            # if prop =='HUMIDITY' and not hd:
+            #     pname = 'DEW_POINT_TEMP'
+            plt.xlabel(pprop)
+            plt.ylabel('Altitude (1000 ft)')
+            plt.legend()
+            plt.savefig(f'{root}/{pprop}_t{trunc}_{casecounter}_cases_pathsgen_QUEST.png', bbox_inches="tight", dpi=500)
+            plt.clf()
+
+            # write pmeans and mpm1s for later Quest stuff
+            if ws:
+                with open(root + '/' + f'{pprop}MEAN_profile.txt' , 'w') as wf:
+                    wf.write(f'# {Ntrue}\n')
+                    wf.write('# mean$(Original) Altitude$(1000$ft) Temperature$(F)\n')
+                    for i in range(Ntrue):
+                        wf.write(f'{paltitudes[i]} {pmeans[i]}\n')
+                with open(root + '/' + f'{pprop}SIGMA_profile.txt' , 'w') as wf:
+                    wf.write(f'# {Ntrue}\n')
+                    wf.write('# σ$(Original) Altitude$(1000$ft) Temperature$(F)\n')
+                    for i in range(Ntrue):
+                        wf.write(f'{paltitudes[i]} {pstdvs[i]}\n')
+                with open(root + '/' + f'{pprop}MP1S_profile.txt' , 'w') as wf:
+                    wf.write(f'# {Ntrue}\n')
+                    wf.write('# mean+1σ$(Original) Altitude$(1000$ft) Temperature$(F)\n')
+                    for i in range(Ntrue):
+                        wf.write(f'{paltitudes[i]} {mpm1s[i,0]}\n')
+                with open(root + '/' + f'{pprop}MM1S_profile.txt' , 'w') as wf:
+                    wf.write(f'# {Ntrue}\n')
+                    wf.write('# mean-1σ$(Original) Altitude$(1000$ft) Temperature$(F)\n')
+                    for i in range(Ntrue):
+                        wf.write(f'{paltitudes[i]} {mpm1s[i,1]}\n')
+
 
     if me and trunc:
         # mean l2 error

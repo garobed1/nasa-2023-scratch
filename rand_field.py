@@ -36,7 +36,9 @@ def unbiased_sample_cov_estimator(datat, norm = True):
 
     for j in range(Ndat):
         work = datat[:,j] - means
-        mat += np.outer(work, work)/fac
+        outer = np.outer(work, work)
+        mat += outer/fac
+        # import pdb; pdb.set_trace()
 
     if 0:
         from matplotlib import colors
@@ -146,11 +148,11 @@ if __name__ == '__main__':
     N = 33
     trunc = 4
     # options if we're pulling data
-    prop = 'TEMP' #'TEMP'
+    prop = 'HUMIDITY' #'TEMP'
     #AND DATA AS COMMAND LINE ARGUMENT
 
-    Ndatplot = 100
-    Ngen = 10000
+    Ndatplot = 200
+    Ngen = 200
 
     # manufactured data
     Ndat = 100
@@ -209,10 +211,10 @@ if __name__ == '__main__':
     pathsgent = truncated_karhunen_loeve_expansion(datag, means, eigval, eigvec, prop)
 
     # transform some humidity back from square root space
-    if prop == 'HUMIDITY':
-        datat *= datat
-        means = np.mean(datat, axis=1)
-        stdvs = np.std(datat, axis=1)
+    # if prop == 'HUMIDITY':
+    #     datat *= datat
+    #     means = np.mean(datat, axis=1)
+    #     stdvs = np.std(datat, axis=1)
 
     meanpaths = np.mean(pathsgent, axis=1)
     stdvpaths = np.std(pathsgent, axis=1)
@@ -250,61 +252,61 @@ if __name__ == '__main__':
     plt.clf()
 
     # now the mean, std, pdf errors
-    sig = 3
-    nsamp = 2000
+    # sig = 3
+    # nsamp = 2000
 
-    kdetv = np.zeros([N, nsamp])
-    xs = np.zeros([N,nsamp])
-    for i in range(N):
-        x = np.linspace(means[i]-sig*stdvs[i], means[i]+sig*stdvs[i], nsamp)
-        kde = gaussian_kde(datat[i,:], bw_method='silverman')
-        kdetv[i,:] = kde.pdf(x)
-        xs[i,:] = x
+    # kdetv = np.zeros([N, nsamp])
+    # xs = np.zeros([N,nsamp])
+    # for i in range(N):
+    #     x = np.linspace(means[i]-sig*stdvs[i], means[i]+sig*stdvs[i], nsamp)
+    #     kde = gaussian_kde(datat[i,:], bw_method='silverman')
+    #     kdetv[i,:] = kde.pdf(x)
+    #     xs[i,:] = x
 
-    # now get realization stats (MC ONLY)
-    meansm = np.mean(pathsgent, axis=1)
-    stdvsm = np.std(pathsgent, axis=1)
+    # # now get realization stats (MC ONLY)
+    # meansm = np.mean(pathsgent, axis=1)
+    # stdvsm = np.std(pathsgent, axis=1)
 
-    kdemv = np.zeros([N,nsamp])
-    for i in range(N):
-        kde = gaussian_kde(pathsgent[i,:], bw_method='silverman')
-        kdemv[i,:] = kde.pdf(xs[i,:])
+    # kdemv = np.zeros([N,nsamp])
+    # for i in range(N):
+    #     kde = gaussian_kde(pathsgent[i,:], bw_method='silverman')
+    #     kdemv[i,:] = kde.pdf(xs[i,:])
     
-    means_err = abs(means-meansm)
-    stdvs_err = abs(stdvs-stdvsm)
-    pdfs_err = np.sum(abs(kdetv-kdemv), axis=1)
-    print('Means Error')
-    print(means_err)
-    print('Stdvs Error')
-    print(stdvs_err)
-    print('PDF Error')
-    print(pdfs_err)
+    # means_err = abs(means-meansm)
+    # stdvs_err = abs(stdvs-stdvsm)
+    # pdfs_err = np.sum(abs(kdetv-kdemv), axis=1)
+    # print('Means Error')
+    # print(means_err)
+    # print('Stdvs Error')
+    # print(stdvs_err)
+    # print('PDF Error')
+    # print(pdfs_err)
 
-    import matplotlib as mpl
-    import matplotlib.pyplot as plt
-    colourmap = mpl.colormaps['rainbow']
-    # plt.figure().set_figheight(9.6)
-    plt.figure().set_figheight(4.8)
-    # plt.plot(meansm, altitudes, 'b-', linewidth=1.1)
-    # plt.plot(meansm + stdvsm, altitudes, 'b--', linewidth=1.1)
-    # plt.plot(meansm - stdvsm, altitudes, 'b--', linewidth=1.1)
-    altind = 4
-    for j in [altind]:#range(N):
-        maxer = np.max(kdetv[j,:])
-        plt.plot(xs[j,:], kdetv[j,:], 'k-', label='true pdf') #/maxer + altitudes[j]
-        for i in range(nsamp - 1):
-            # y2 = [altitudes[j], altitudes[j]]
-            # y1 = [kdemv[j,i]/maxer+y2[0], kdemv[j,i+1]/maxer+y2[1]]
-            y1 = [kdemv[j,i], kdemv[j,i+1]]
-            plt.fill_between([xs[j,i], xs[j,i+1]],
-                             y1,
-                            #  y2,
-                             color=colourmap(kdemv[j,i]/np.max(kdemv[3,:]))
-                             ,alpha=0.6)
-    plt.title(f'{prop} PDF at {altitudes[altind]:.1f} thousand ft')
-    plt.ylabel(f'PDF({prop})')
-    plt.xlabel(prop)
-    plt.savefig(f'{name}_{prop}_t{trunc}_cases_PDF_comp.png', bbox_inches="tight", dpi=500)
+    # import matplotlib as mpl
+    # import matplotlib.pyplot as plt
+    # colourmap = mpl.colormaps['rainbow']
+    # # plt.figure().set_figheight(9.6)
+    # plt.figure().set_figheight(4.8)
+    # # plt.plot(meansm, altitudes, 'b-', linewidth=1.1)
+    # # plt.plot(meansm + stdvsm, altitudes, 'b--', linewidth=1.1)
+    # # plt.plot(meansm - stdvsm, altitudes, 'b--', linewidth=1.1)
+    # altind = 4
+    # for j in [altind]:#range(N):
+    #     maxer = np.max(kdetv[j,:])
+    #     plt.plot(xs[j,:], kdetv[j,:], 'k-', label='true pdf') #/maxer + altitudes[j]
+    #     for i in range(nsamp - 1):
+    #         # y2 = [altitudes[j], altitudes[j]]
+    #         # y1 = [kdemv[j,i]/maxer+y2[0], kdemv[j,i+1]/maxer+y2[1]]
+    #         y1 = [kdemv[j,i], kdemv[j,i+1]]
+    #         plt.fill_between([xs[j,i], xs[j,i+1]],
+    #                          y1,
+    #                         #  y2,
+    #                          color=colourmap(kdemv[j,i]/np.max(kdemv[3,:]))
+    #                          ,alpha=0.6)
+    # plt.title(f'{prop} PDF at {altitudes[altind]:.1f} thousand ft')
+    # plt.ylabel(f'PDF({prop})')
+    # plt.xlabel(prop)
+    # plt.savefig(f'{name}_{prop}_t{trunc}_cases_PDF_comp.png', bbox_inches="tight", dpi=500)
 
 
 

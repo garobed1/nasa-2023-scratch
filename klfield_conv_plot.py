@@ -20,49 +20,84 @@ qtypelist = qtypenamedict.keys()
 datdict = {}
 caselist = sys.argv[1:]
 root = os.getcwd()
+proplist = ['temp', 'humidity']
 for case in caselist:
     name = case.split('_')
     kl = name[-1]
     qtype = name[-2]
-    prop = name[-3]
+    pcat = name[-3]
     klp = kl[2] # KL param number
     kll = kl[4] # grid level
 
     if qtype not in qtypelist:
         qtype = 'dcc'
-        prop = name[-2]
+        pcat = name[-2]
 
-    ft = klp + qtype
 
-    if ft not in datdict:
-        datdict[ft] = {}
-        datdict[ft]['qtype'] = qtypenamedict[qtype]
-        datdict[ft]['KL'] = klp
-        datdict[ft]['s'] = []
-        datdict[ft]['mean'] = []
-        datdict[ft]['sigma'] = []
-        datdict[ft]['pdf'] = []
+    prop = [pcat]
+    if pcat not in proplist:
+        if pcat == 'temphumid':
+            props = ['temp', 'humidity']
+    for prop in props:
+        ft = klp + qtype + prop
+        if ft not in datdict:
+            datdict[ft] = {}
+            datdict[ft]['qtype'] = qtypenamedict[qtype]
+            datdict[ft]['KL'] = klp
+            datdict[ft]['prop'] = prop
+            datdict[ft]['s'] = []
+            datdict[ft]['mean'] = []
+            datdict[ft]['sigma'] = []
+            datdict[ft]['pdf'] = []
 
-    # get mean
-    # get stdv
-    wm = []
-    ws = []
-    wp = []
-    with open(f'{root}/{case}/{prop.upper()}_stat_errs.txt') as f:
-        for line in f:
-            wm.append(float(line.split()[1]))
-            ws.append(float(line.split()[2]))
-            wp.append(float(line.split()[3]))
-    
-    # get number of samples
-    with open(f'{root}/{case}/database') as f:
-        lines = f.readlines()
-        wc = int(lines[2].split()[0])
+        # get mean
+        # get stdv
+        wm = []
+        ws = []
+        wp = []
+        try:
+            with open(f'{root}/{case}/{prop.upper()}_stat_errs.txt') as f:
+                for line in f:
+                    wm.append(float(line.split()[1]))
+                    ws.append(float(line.split()[2]))
+                    wp.append(float(line.split()[3]))
+        except:
+            # if it doesn't exist, then take the quest output in /stats/ instead
+            # then compute it here
+            wme = []
+            with open(f'{root}/{case}/{prop.upper()}MEAN_profile.txt') as f:
+                for line in f:
+                    if not line.startswith('#'):
+                        wme.append(float(line.split()[1]))
+            wse = []
+            with open(f'{root}/{case}/{prop.upper()}SIGMA_profile.txt') as f:
+                for line in f:
+                    if not line.startswith('#'):
+                        wse.append(float(line.split()[1]))
+            wmp = []
+            with open(f'{root}/{case}/stats/KL{prop.upper()}.Altitude (1000 ft).mean') as f:
+                for line in f:
+                    if not line.startswith('#'):
+                        wmp.append(float(line.split()[1]))
+            wmpsp = []
+            with open(f'{root}/{case}/stats/KL{prop.upper()}.Altitude (1000 ft).meansigma_p') as f:
+                for line in f:
+                    if not line.startswith('#'):
+                        wmpsp.append(float(line.split()[1]))
 
-    datdict[ft]['s'].append(wc)
-    datdict[ft]['mean'].append(np.array(wm))
-    datdict[ft]['sigma'].append(np.array(ws))
-    datdict[ft]['pdf'].append(np.array(wp))
+            wm = [abs(wme[i] - wmp[i]) for i in range(len(wme))]
+            wsp = [abs(wmpsp[i] - wmp[i]) for i in range(len(wmp))]
+            ws = [abs(wsp[i] - wse[i]) for i in range(len(wmp))]
+
+        # get number of samples
+        with open(f'{root}/{case}/database') as f:
+            lines = f.readlines()
+            wc = int(lines[2].split()[0])
+
+        datdict[ft]['s'].append(wc)
+        datdict[ft]['mean'].append(np.array(wm))
+        datdict[ft]['sigma'].append(np.array(ws))
+        datdict[ft]['pdf'].append(np.array(wp))
 
 # sort each dict
 for key, cdict in datdict.items():
@@ -84,25 +119,29 @@ for key, cdict in datdict.items():
 
 # nd4s = [81, 625, 6561]
 # ns4s = [41, 137, 401, 1105, 2929, 7537]
+for prop in props:
+    for key, cdict in datdict.items():
+        if cdict['prop'] == prop:
+            plt.plot(cdict['s'], np.sum(cdict['mean'], axis=1), label = f"KL {cdict['KL']}, {cdict['qtype']}")
+    # [np.sum(cdict['mean'][i]) for i in range(len(cdict['s']))]
+    plt.ylabel(f'KL {prop} Field Mean Error (L1)')
+    plt.xlabel('Num Samples')
+    plt.yscale('log')
+    plt.legend()
+    plt.title('KL expansion mean error sample convergence')
+    plt.savefig(f'kl{prop}meanconv.png', bbox_inches='tight')
+    plt.clf()
 
-for key, cdict in datdict.items():
-    plt.plot(cdict['s'], np.sum(cdict['mean'], axis=1), label = f"KL {cdict['KL']}, {cdict['qtype']}")
-# [np.sum(cdict['mean'][i]) for i in range(len(cdict['s']))]
-plt.ylabel(f'KL Field Mean Error (L1)')
-plt.xlabel('Num Samples')
-plt.yscale('log')
-plt.legend()
-plt.title('KL expansion mean error sample convergence')
-plt.savefig('klmeanconv.png', bbox_inches='tight')
-plt.clf()
 
-
-for key, cdict in datdict.items():
-    plt.plot(cdict['s'], np.sum(cdict['sigma'], axis=1), label = f"KL {cdict['KL']}, {cdict['qtype']}")
-# [np.sum(cdict['sigma'][i]) for i in range(len(cdict['s']))]
-plt.yscale('log')
-plt.ylabel(f'KL Field Std Error (L1)')
-plt.xlabel('Num Samples')
-plt.legend()
-plt.title('KL expansion sigma error sample convergence')
-plt.savefig('klstdconv.png', bbox_inches='tight')
+    for key, cdict in datdict.items():
+        if cdict['prop'] == prop:
+            plt.plot(cdict['s'], np.sum(cdict['sigma'], axis=1), label = f"KL {cdict['KL']}, {cdict['qtype']}")
+    # [np.sum(cdict['sigma'][i]) for i in range(len(cdict['s']))]
+    plt.yscale('log')
+    plt.ylabel(f'KL {prop} Field Std Error (L1)')
+    plt.xlabel('Num Samples')
+    plt.legend()
+    plt.title('KL expansion sigma error sample convergence')
+    plt.savefig(f'kl{prop}stdconv.png', bbox_inches='tight')
+    plt.clf()
+    # import pdb; pdb.set_trace()
