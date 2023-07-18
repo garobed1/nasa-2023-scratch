@@ -1,0 +1,4 @@
+#create database via quest_prep.csh
+questDB.pl -f
+python3 ~/nasa-2023-scratch/quest2klfield.py -ws -p -e 4 -d ~/nasa-2023-scratch/fulldata.json
+#quest2sboom.csh

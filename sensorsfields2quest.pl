@@ -238,7 +238,7 @@ for my $path ( split /:/, $ENV{PATH} ) {
 
     foreach my $name (keys %sensorNames) {
       chdir $sensorNames{$name};
-      system("jar cf $name.bundle.xml $name.*.??.*.xml");
+      system("jar cf ../$name.bundle.xml $name.*.??.*.xml");
       print "Done file $name.bundle.xml\n";
       unlink glob "$name.*.??.*.xml";
       chdir File::Spec->updir();

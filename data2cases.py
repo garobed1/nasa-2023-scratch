@@ -12,54 +12,50 @@ or one at a time (e.g. TEMP only, rest default).
 
 Follow this convention: 
 # Var_Name Var_Value
-TEMP_path_0 T0
-TEMP_path_1 T1
+A0 T0
+A1 T1
 
 I think as long as the cases/case.??.????? directories ands templates with
 mk_presb.csh exist, we can use quest2sboom.csh as a shortcut; just generate
 the same text files as before
 """
 
-# before anything, first estimate the covariance of the data
-# and find its eigenpairs
 
+# cmd line options
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--verbose', action='store_true') 
 # acceptable args are anything in proplist or 'ALL', which does all of them
 parser.add_argument('-m', '--modelprop', action='store', default='TEMP')
 # parser.add_argument('-p', '--plot', action='store_true') 
-parser.add_argument('-d', '--datadir', action='store')
-# MODEL HUMIDITY FROM TEMPERATURE/DEW POINT
-# parser.add_argument('-H', '--modelhumidity', action='store_true')
+parser.add_argument('-d', '--datafile', action='store')
+
 args = parser.parse_args()
 verbose = args.verbose
 proparg = args.modelprop
-datadir = args.datadir
-# mhflag = args.modelhumidity
+datafile = args.datafile
 
-fulllist = ['TEMP', 'HUMIDITY', 'PRESSURE', 'WINDX', 'WINDY']
+fulllist = ['TEMP', 'HUMIDITY', 'PRESSURE', 'WINDX', 'WINDY', 'TEMPHUMID']
 if proparg == 'ALL':
     proplist = fulllist
+elif proparg == 'TEMPHUMID':
+    proplist = ['TEMP', 'HUMIDITY']
 elif proparg not in fulllist:
     Exception("Valid property/option not given!")
 else:
     proplist = [proparg]
 
+# file naming
 root = os.getcwd()
 # quest_file = 'QUEST.dat'
-
-data_file = 'fulldata.json'
-if datadir is not None:
-    data_file = datadir
+data_file = 'fulldata.json' # assume its in the directory
+if datafile is not None:
+    data_file = datafile
 case_dir = f'{root}/cases'
 
 
-if verbose:
-    print(f"Root dir: {root}")
-    # print(f" o Working in {db}")
-
 # first, generate the KL expansion
 if verbose:
+    print(f"Root dir: {root}")
     print(f"Preprocessing data ...")
 
 # begin loop over properties

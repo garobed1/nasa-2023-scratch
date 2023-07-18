@@ -1,0 +1,6 @@
+#sboom2quest.pl -v
+#cd QUEST_loudness
+#jar cf ../loudness.bundle.xml loudness.*.xml
+#uq_wrap.csh
+sensorsfields2quest.pl
+# now you can use quest_prep.csh

@@ -1,11 +1,3 @@
-"""
-Generate PDF plots, mean, standard deviation of direct atmospheric data outputs
-
-PDF generated from kernel density estimation (NOTE: Using Default Bandwidth est)
-Same as basic Quest, see 5.15
-
-Also unlike Quest, no weights, assuming 'Monte Carlo' distribution of data
-"""
 import os, sys
 import numpy as np
 import json
@@ -13,23 +5,32 @@ import argparse
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 from scipy.stats import gaussian_kde
+"""
+Generate PDF plots, mean, standard deviation of direct atmospheric data outputs
 
+PDF generated from kernel density estimation (NOTE: Using Silverstein Bandwidth
+ est) Same as basic Quest, see 5.15
+
+Also unlike Quest, no weights, assuming 'Monte Carlo' distribution of data
+"""
+
+# cmd line options
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--verbose', action='store_true') 
 parser.add_argument('-d', '--datafile', action='store', default='[\'TEMP\']_data_loud.json')
-colourmap = mpl.colormaps['rainbow']
 
 args = parser.parse_args()
 verbose = args.verbose
 datafile = args.datafile
-root = os.getcwd()    
 
+# file naming
+root = os.getcwd()    
 with open(datafile) as fj:
     fulldata = json.load(fj)
-
 props = datafile.split('/')[-1]
 props = props.split('_')[0]
 
+# process statistics
 data_stats = {}
 data_pdfs = {}
 for key, value in fulldata.items():
@@ -58,6 +59,7 @@ for key, value in fulldata.items():
 # just print out mu and sigma for each output
 if verbose:
     print('Quantity    | Mean         | Std. Dev.      ')
+    colourmap = mpl.colormaps['rainbow']
     for key, value in fulldata.items():
         if key == 'n':
             continue
@@ -81,5 +83,5 @@ if verbose:
                              ,alpha=0.6)
         plt.xlabel(key)
         plt.ylabel(f'PDF({key}) (normalized)')
-        plt.savefig(f'{key}_{props}_pdf_est.png', bbox_inches='tight')
+        plt.savefig(f'pictures/{key}_{props}_pdf_est.png', bbox_inches='tight')
         plt.clf()

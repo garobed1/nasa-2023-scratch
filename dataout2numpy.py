@@ -1,24 +1,25 @@
-"""
-Convert file I/O sboom output data from .dat files to numpy arrays
-
-"""
 import os, sys
 import numpy as np
 import json
 import argparse
 
+"""
+Convert file I/O sboom output data from .dat files to numpy arrays
 
+For the sake of data_post.py
+"""
+
+# cmd line options
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--verbose', action='store_true') 
 # read in signatures as well. # NOTE: read_signatures not implemented!
 parser.add_argument('-s', '--readsigs', action='store_true')
-# parser.add_argument('-p', '--plot', action='store_true') 
-# parser.add_argument('-d', '--datadir', action='store')
-# MODEL HUMIDITY FROM TEMPERATURE/DEW POINT
-# parser.add_argument('-H', '--modelhumidity', action='store_true')
+
 args = parser.parse_args()
 verbose = args.verbose
 readsigs = args.readsigs
+
+# file naming
 root = os.getcwd()    
 casedir = root + '/cases'
 if verbose:

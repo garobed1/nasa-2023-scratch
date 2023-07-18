@@ -1,0 +1,6 @@
+# easy way to do so locally
+#c3d_parallel_runner.pl -r cases -s case -d sboom -v -c "sboom -v"
+# otherwise, submit on cluster using qsub or interactive job with script
+#gnu parallel
+#export sdir=sboom_atm_uq_????_????_kl?l?
+#\ls -1d /nobackup/${username}/${sdir}/cases/case.??.?????/sboom | parallel -j 40 -u --sshloginfile $PBS_NODEFILE "cd {}; sboom"

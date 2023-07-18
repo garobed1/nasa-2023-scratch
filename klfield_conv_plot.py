@@ -3,11 +3,23 @@ import matplotlib.pyplot as plt
 import os, sys
 
 """
+After running quest_post.csh and outputting mean/mean+1sigma into stats/ for each project
+
 Give directories with _kl?l* as arguments (? is a specific number, * is an actual wildcard)
 
 This one handles statistics errors of the input KL fields themselves
-"""
 
+Can also potentially handle the combined temp/dewpttemp vector if given
+NOTE: We show that dew point temp fields converge, but converted humidity does not
+
+Ex.
+cd ~/temphumid_lhs
+python3 ~/nasa-2023-scratch/klfield_conv_plot.py sboom_atm_uq_temphumid_lhs_kl5l*
+"""
+# KL field measure to check for
+# NOTE: Looking specifically for KLTEMP, KLHUMIDITY, etc.
+
+# UQ method names
 qtypenamedict = {
     'dcc':'Dense CC',
     'spcc':'Sparse CC',
@@ -17,11 +29,17 @@ qtypenamedict = {
     'lhs':'LHS'
 }
 qtypelist = qtypenamedict.keys()
+
+# file naming
 datdict = {}
 caselist = sys.argv[1:]
 root = os.getcwd()
-proplist = ['temp', 'humidity']
+proplist = ['temp', 'humidity', 'windx', 'windy']
+
+# loop over each project
 for case in caselist:
+
+    # retrieve properties from directory names
     name = case.split('_')
     kl = name[-1]
     qtype = name[-2]
@@ -129,7 +147,7 @@ for prop in props:
     plt.yscale('log')
     plt.legend()
     plt.title('KL expansion mean error sample convergence')
-    plt.savefig(f'kl{prop}meanconv.png', bbox_inches='tight')
+    plt.savefig(f'{root}/pictures/kl{prop}meanconv.png', bbox_inches='tight')
     plt.clf()
 
 
@@ -138,10 +156,10 @@ for prop in props:
             plt.plot(cdict['s'], np.sum(cdict['sigma'], axis=1), label = f"KL {cdict['KL']}, {cdict['qtype']}")
     # [np.sum(cdict['sigma'][i]) for i in range(len(cdict['s']))]
     plt.yscale('log')
-    plt.ylabel(f'KL {prop} Field Std Error (L1)')
+    plt.ylabel(f'KL {prop} Field Sigma Error (L1)')
     plt.xlabel('Num Samples')
     plt.legend()
     plt.title('KL expansion sigma error sample convergence')
-    plt.savefig(f'kl{prop}stdconv.png', bbox_inches='tight')
+    plt.savefig(f'{root}/pictures/kl{prop}stdconv.png', bbox_inches='tight')
     plt.clf()
     # import pdb; pdb.set_trace()
