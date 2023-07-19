@@ -362,7 +362,7 @@ for prop in proplist:
 
             mpm1s = np.array([[pmeans+pstdvs], [pmeans-pstdvs]]).T.reshape([Ntrue, 2])
             mpm1spaths = np.array([[pmeanpaths+pstdvpaths], [pmeanpaths-pstdvpaths]]).T.reshape([Ntrue, 2])
-            plt.plot(ppathgent[pprop], paltitudes,  '-', linewidth=1.0)
+            plt.plot(ppathgent[pprop], paltitudes,  '-', linewidth=1.0, color = '0.3', alpha = 0.2, solid_capstyle='projecting')
             plt.plot([], [], '-', linewidth=1.0,  label = 'Synthetic Data (QUEST)')
             # plt.plot(pdatat, paltitudes,  '-', linewidth=1.0)
             # plt.plot([], [], '-', linewidth=1.0,  label = 'Original Data')
@@ -387,7 +387,7 @@ for prop in proplist:
 
             # plt.plot(ppathgent[pprop], paltitudes,  '-', linewidth=1.0)
             # plt.plot([], [], '-', linewidth=1.0,  label = 'Synthetic Data (QUEST)')
-            plt.plot(pdatat, paltitudes,  '-', linewidth=1.0)
+            plt.plot(pdatat, paltitudes,  '-', linewidth=1.0, color = '0.3', alpha = 0.2,  solid_capstyle='projecting')
             plt.plot([], [], '-', linewidth=1.0,  label = 'Original Data')
             # import pdb; pdb.set_trace()
             plt.plot(pmeans, paltitudes, 'k-', linewidth=1.6)

@@ -78,12 +78,55 @@ def findSigStart(sensor, tol = 5e-4):
     while i < N - 1:
         cury = sensor[i][1]
         nexty = sensor[i+1][1]
-        move = abs(nexty-cury)
+        move = nexty-cury
         if move > tol:
             return sensor[i][0]
         i += 1
 
+    print('WARNING: Could not find start of signal, returning first point instead')
     return sensor[0][0]
+
+def findSigStartMach(infile, sdist):
+    """Find relative signal position based on mach angle
+        Returns reference x value for signal location
+            infile := c3d cntl input file string
+            sdist  := orthogonal distance from mach cone origin to sensor
+    """
+    with open(infile) as file:
+        for line in file:
+            if line.startswith("Mach"):
+                words = line.split()
+                mach = float(words[1])
+
+    # mach angle formula
+    mth = np.arcsin(1./mach)
+
+    return sdist/np.tan(mth)
+
+def findGroundCross(ground, nsafe = 10):
+    """Find zero crossing of ground signal
+        Returns the x value where the zero crossing occurs
+            ground       := ordered list of tuples for ground signal
+            nsafe        := make sure it stays negative after this many points
+        NOTE: Iterate from start and check if signal and its slope go negative
+    """
+
+    N = len(groundPoints)
+    i = 0
+    ntol = 1e-10
+    while i < N - 1:
+        cury = ground[i][1]
+        nexty = ground[i+1][1]
+        move = nexty-cury
+        if move < -ntol and nexty < 0. and cury > 0.:
+            # before returning, check if it stays negative for nsafe points
+            if ground[i+nsafe][1] < -ntol:
+                return ground[i][0]
+        i += 1
+
+    print('WARNING: Could not find zero crossing, returning first point instead')
+    return ground[0][0]
+               
 
 
 # ==============================
@@ -121,10 +164,14 @@ parser.add_argument("-sv", "--setValue",      type=float,
                     help="option to set value at start of closeout (Use Caution!)")
 parser.add_argument("-st", "--shiftAlignTol", type=float, default = 5e-4,
                     help="set tolerance of signal start detection")
+parser.add_argument("-sd", "--sensorDist", type=float, 
+                    help="distance of sensor from mach cone origin")
 parser.add_argument("-sb", "--run_sBOOM",
                     help="run sBOOM with modSig.dat (requires existing presb.input)",    action="store_true")
 parser.add_argument("-sf",  "--shiftAlignFront",
                     help="align all signals by where they start referring to nominal",   action="store_true")
+parser.add_argument("-sg",  "--shiftAlignGround",
+                    help="align all ground signals at the 0 crossing (for varying mach_",action="store_true")
 parser.add_argument("-p",  "--plotLive",
                     help="plot (interactive) original & modified near field signals",    action="store_true")
 parser.add_argument("-pb", "--plotBatch",
@@ -156,6 +203,7 @@ origSensor   = sensorPoints.copy()
 #                             ....2.5 Translate signals such that their starts line up
 # By default, use case.00.00000 as the reference
 if args.shiftAlignFront:
+    print('Aligning near-field signals based on nominal mach angle')
     # get nominal case
     sensorPoints0 = []
     # sensorFileName0 = '../../case.00.00000/' + sensorFileName
@@ -171,12 +219,23 @@ if args.shiftAlignFront:
     tol = args.shiftAlignTol
     sigstart0 = findSigStart(origSensor0, tol=tol)
     sigstart = findSigStart(origSensor, tol=tol)
+
+    # alternatively, try computing based on mach angle
+    inputFileName0 = '../../case.00.00000/CFD/input.cntl'
+    inputFileName = '../CFD/input.cntl'
+
+    sdist = args.sensorDist
+    sigstart0 = findSigStartMach(inputFileName0, sdist)
+    sigstart = findSigStartMach(inputFileName, sdist)
+    
+
     sigshift = sigstart0 - sigstart
 
     # shift current case signal and continue
     origSensorShift = []
     for i in range(len(sensorPoints)): origSensorShift.append((origSensor[i][0] + sigshift, origSensor[i][1])) 
     origSensor = origSensorShift
+    sensorPoints = origSensorShift.copy()
 
 #           ...know we have a filename and closout location, start working
 #                    finish processing inputs, and setup the distances for
@@ -186,11 +245,21 @@ closeoutSart = args.closeoutStart
 #    closeoutEnd = closeoutStart + 15  # default is 15 units after closeout start
 
 closeoutEnd = closeoutSart + 15  if None == args.closeoutEnd else args.closeoutEnd
+
+# if we shifted the signal, adjust the closeout distances as well
+if args.shiftAlignFront:
+    closeoutSart += sigshift
+    closeoutEnd += sigshift
+    aftFlat -= sigshift
+
 backPadDist = max(0., closeoutEnd + aftFlat - sensorPoints[-1][0])
 backPadNpts = args.closeoutNpts
 
 frontPadDist = args.frontPadDist
 frontPadNpts = args.frontPadNpts
+
+if args.shiftAlignFront:
+    frontPadDist += sigshift
 
 #                             ....3. Pad front and back if desired
 if args.frontPadDist: #               <-- pad front
@@ -255,6 +324,40 @@ if args.run_sBOOM:
         os.system('cat loud.dat')
     else:
         print('sBOOM didnt produce a loud.dat file -- verify that it ran')
+
+# if mach number varies, need to align signals at ground
+if args.shiftAlignGround:
+    print('Aligning signal with zero crossing of nominal case')
+    # get nominal case
+    groundFileName0 = '../../case.00.00000/sboom/SBground.sig'    
+    groundFileName = 'SBground.sig'
+    if exists(groundFileName0) and exists(groundFileName):
+        groundPoints0 = []
+        with open(groundFileName0) as file:
+            for line in file:
+                if not line.startswith("#"):
+                    words = line.split()
+                    groundPoints0.append((float(words[0]), float(words[1])))
+        # get current case
+        groundPoints = [] 
+        with open(groundFileName) as file:
+            for line in file:
+                if not line.startswith("#"):
+                    words = line.split()
+                    groundPoints.append((float(words[0]), float(words[1])))
+        # find nominal and current zero crossings
+        groundCross0 = findGroundCross(groundPoints0)
+        groundCross = findGroundCross(groundPoints)
+
+        groundShift = groundCross0 - groundCross
+        
+        with open('SBground_shift.sig', 'w') as file:
+            for dat in groundPoints:
+                file.write(f'{(dat[0]+groundShift):.16e} {dat[1]:.16e}\n')
+
+    else:
+        print('Case ground solutions not found, no alignment performed')
+
 
 # post-process gradient array
 

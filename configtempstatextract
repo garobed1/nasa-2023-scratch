@@ -1,0 +1,5 @@
+TEMP_profile	true
+Temperature$(F) 	true
+ParPanel	true	0	127	Altitude$(1000$ft)	true	true	false	false	false	false	false	1-σ false 1.0
+mean,$(Original)	true
+ParPanelLine	true	0	127	Altitude$(1000$ft)	false

@@ -90,6 +90,10 @@ def dew2hum(dew, temp, arg_units='F', dew_units='F'):
             work[i] = inv_boxcox(dew[i,:], lam_opt[i])
             # work[i] = inv_yeojohnson(dew[i,:], lam_opt[i])
 
+    # final pass
+    if any((work - 100.)>0.) :
+        work = np.clip(work, a_min=None, a_max=100.)
+
     return work
 
 
