@@ -238,7 +238,8 @@ for my $path ( split /:/, $ENV{PATH} ) {
 
     foreach my $name (keys %sensorNames) {
       chdir $sensorNames{$name};
-      system("jar cf ../$name.bundle.xml $name.*.??.*.xml");
+      # the command apparently gets too long if done with wildcards
+      system("jar cMf ../$name.bundle.xml .");# $name.*.??.*.xml");
       print "Done file $name.bundle.xml\n";
       unlink glob "$name.*.??.*.xml";
       chdir File::Spec->updir();

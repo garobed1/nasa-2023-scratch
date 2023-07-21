@@ -56,6 +56,7 @@ for case in caselist:
     if pcat not in proplist:
         if pcat == 'temphumid':
             props = ['temp', 'humidity']
+            # props = ['humidity']
     for prop in props:
         ft = klp + qtype + prop
         if ft not in datdict:
@@ -80,7 +81,7 @@ for case in caselist:
                     ws.append(float(line.split()[2]))
                     wp.append(float(line.split()[3]))
         except:
-            # if it doesn't exist, then take the quest output in /stats/ instead
+            # if it doesn't exist, then take the quest post output instead
             # then compute it here
             wme = []
             with open(f'{root}/{case}/{prop.upper()}MEAN_profile.txt') as f:
@@ -93,12 +94,12 @@ for case in caselist:
                     if not line.startswith('#'):
                         wse.append(float(line.split()[1]))
             wmp = []
-            with open(f'{root}/{case}/stats/KL{prop.upper()}.Altitude (1000 ft).mean') as f:
+            with open(f'{root}/{case}/KL{prop.upper()}.Altitude (1000 ft).mean') as f:
                 for line in f:
                     if not line.startswith('#'):
                         wmp.append(float(line.split()[1]))
             wmpsp = []
-            with open(f'{root}/{case}/stats/KL{prop.upper()}.Altitude (1000 ft).meansigma_p') as f:
+            with open(f'{root}/{case}/KL{prop.upper()}.Altitude (1000 ft).meansigma_p') as f:
                 for line in f:
                     if not line.startswith('#'):
                         wmpsp.append(float(line.split()[1]))
@@ -140,26 +141,26 @@ for key, cdict in datdict.items():
 for prop in props:
     for key, cdict in datdict.items():
         if cdict['prop'] == prop:
-            plt.plot(cdict['s'], np.sum(cdict['mean'], axis=1), label = f"KL {cdict['KL']}, {cdict['qtype']}")
+            plt.plot(cdict['s'], np.sum(cdict['mean'], axis=1)/cdict['mean'].shape[1], label = f"KL {cdict['KL']}, {cdict['qtype']}")
     # [np.sum(cdict['mean'][i]) for i in range(len(cdict['s']))]
-    plt.ylabel(f'KL {prop} Field Mean Error (L1)')
+    plt.ylabel(f'KL {prop.upper()} Field Mean Error (L1)')
     plt.xlabel('Num Samples')
     plt.yscale('log')
     plt.legend()
     plt.title('KL expansion mean error sample convergence')
-    plt.savefig(f'{root}/pictures/kl{prop}meanconv.png', bbox_inches='tight')
+    plt.savefig(f'{root}/pictures/kl{prop.upper()}meanconv.png', bbox_inches='tight')
     plt.clf()
 
 
     for key, cdict in datdict.items():
         if cdict['prop'] == prop:
-            plt.plot(cdict['s'], np.sum(cdict['sigma'], axis=1), label = f"KL {cdict['KL']}, {cdict['qtype']}")
+            plt.plot(cdict['s'], np.sum(cdict['sigma']/cdict['mean'].shape[1], axis=1), label = f"KL {cdict['KL']}, {cdict['qtype']}")
     # [np.sum(cdict['sigma'][i]) for i in range(len(cdict['s']))]
     plt.yscale('log')
-    plt.ylabel(f'KL {prop} Field Sigma Error (L1)')
+    plt.ylabel(f'KL {prop.upper()} Field Sigma Error (L1)')
     plt.xlabel('Num Samples')
     plt.legend()
     plt.title('KL expansion sigma error sample convergence')
-    plt.savefig(f'{root}/pictures/kl{prop}stdconv.png', bbox_inches='tight')
+    plt.savefig(f'{root}/pictures/kl{prop.upper()}stdconv.png', bbox_inches='tight')
     plt.clf()
     # import pdb; pdb.set_trace()

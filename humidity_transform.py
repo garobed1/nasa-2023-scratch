@@ -76,7 +76,6 @@ def dew2hum(dew, temp, arg_units='F', dew_units='F'):
         b = 18.678
         c = 257.14
         work = 100*np.exp(b*dew_c/(dew_c+c) - b*temp_c/(temp_c+c))
-    
     if selector == 1:
         work = dew**2
     

@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import numpy as np
 import os, sys
 import argparse
@@ -239,7 +241,8 @@ for prop in proplist:
                     with open(case_dir + '/' + case + '/' + f'TEMP_profile.txt' , 'w') as wf:
                         for i in range(split_ind):
                             wf.write(f'{altitudes[i]} {temp_use[i]}\n')
-                    ppathgent['TEMP'][:, casenum] = temp_use[:,0]
+                    if pflag:
+                        ppathgent['TEMP'][:, casenum] = temp_use[:,0]
 
                 # If we're modeling temperature as well, convert using the corresponding temp values
                 elif os.path.isfile(case_dir + '/' + case +'/TEMP_profile.txt'):
@@ -260,7 +263,8 @@ for prop in proplist:
                             wf.write(f'{altitudes[i]} {temp_use[i]}\n')
                     dew_pt_use = pathgen
                 
-                ppathgent['DEWPOINT'][:, casenum] = dew_pt_use[:,0]
+                if pflag:
+                    ppathgent['DEWPOINT'][:, casenum] = dew_pt_use[:,0]
                 
                 #Convert pathsgen dew temp to humidity
                 # NOTE: This function ensures dew point is always 
@@ -272,7 +276,8 @@ for prop in proplist:
                 
                 # if any(work > 100.):
                 #     import pdb; pdb.set_trace()
-                ppathgent['HUMIDITY'][:, casenum] = work[:,0]
+                if pflag:
+                    ppathgent['HUMIDITY'][:, casenum] = work[:,0]
 
                 if prop != 'TEMPHUMID':
                     pathgen = work
@@ -281,11 +286,12 @@ for prop in proplist:
                     # import pdb; pdb.set_trace()
                     with open(case_dir + '/' + case + '/' + f'HUMIDITY_profile.txt' , 'w') as wf:
                         for i in range(split_ind):
-                            wf.write(f'{altitudes[i]} {work[i]}\n')
+                            wf.write(f'{altitudes[i]} {work[i,0]}\n')
 
             # write to file
             if not ((prop =='HUMIDITY' and not hd) or prop == 'TEMPHUMID'):
-                ppathgent[prop][:, casenum] = pathgen[:,0]
+                if pflag:
+                    ppathgent[prop][:, casenum] = pathgen[:,0]
                 with open(case_dir + '/' + case + '/' + f'{prop}_profile.txt' , 'w') as wf:
                     for i in range(N):
                         wf.write(f'{altitudes[i]} {pathgen[i][0]}\n')
