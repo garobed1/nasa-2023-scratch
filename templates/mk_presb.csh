@@ -114,7 +114,7 @@ endif
 if ( -e "$src/../HUMIDITY_profile.txt") then # NOTE: We're checking just for existence of a specifically named user profile
   echo '1               21.User Input relative humidity flag: 0 => Std. Atmosphere, 1 => user input RH profile' >> $file
   #cat $src/SplineAtmos-20081028.txt | awk '{if ( $1 < 90001 ) {printf("%-7d %8.2f\n", int($1), $2*9/5+32)}}' >! tmp.txt 
-  cat $src/../HUMIDITY_profile.txt | awk '{if ( $1*1000*0.3048006 < 90001 ) {printf("%-7d %8.2f\n", $1*1000*0.3048006, $2)}}' >! tmp.txt 
+  cat $src/../HUMIDITY_profile.txt | awk '{if ( $1*1000*0.3048006 < 90001 ) {printf("%-7d %8.13f\n", $1*1000*0.3048006, $2)}}' >! tmp.txt 
   @ lines = `wc -l tmp.txt | awk '{print $1}'`
   printf "%-5d %9s If humidity flag is 1, then input the number of user altitudes (m) relative humidity (%)\n" "$lines" >> $file
   cat $file tmp.txt > ${file}.tmp
