@@ -96,7 +96,7 @@ endif
 if ( -e "$src/../WINDX_profile.txt" &&  -e "$src/../WINDY_profile.txt") then
   echo '1               20.User Input Wind Flag: 0 => No wind, 1 => user input wind profile' >> $file
   # NOTE: I don't know the units for wind velocity, I think it's feet/s? Need to change
-  cat $src/../WINDX_profile.txt | awk '{if ( $1*1000*ftmfac < 90001 ) {printf(""%8.5f %8.13f\n", $1*1000*0.3048006, $7)}}' >! tmp.txt
+  cat $src/../WINDX_profile.txt | awk '{if ( $1*1000*ftmfac < 90001 ) {printf("%8.5f %8.13f\n", $1*1000*0.3048006, $7)}}' >! tmp.txt
   @ lines = `wc -l tmp.txt | awk '{print $1}'`
   printf "%-5d %9s number of altitude (m) X-wind (m/s) pairs\n" "$lines" >> $file
   cat $file tmp.txt > ${file}.tmp
@@ -112,7 +112,7 @@ if ( -e "$src/../HUMIDITY_profile.txt") then # NOTE: We're checking just for exi
   echo '1               21.User Input relative humidity flag: 0 => Std. Atmosphere, 1 => user input RH profile' >> $file
   cat $src/../HUMIDITY_profile.txt | awk '{if ( $1*1000*0.3048006 < 90001 ) {printf("%8.5f %8.13f\n", $1*1000*0.3048006, $2)}}' >! tmp.txt 
   @ lines = `wc -l tmp.txt | awk '{print $1}'`
-  printf "%-5d %9s If humidity flag is 1, then input the number of user altitudes (m) relative humidity (%)\n" "$lines" >> $file
+  printf "%-5d %9s If humidity flag is 1, then input the number of user altitudes (m) relative humidity (percent)\n" "$lines" >> $file
   cat $file tmp.txt > ${file}.tmp
   \mv -f ${file}.tmp $file
   \rm -f tmp.txt
