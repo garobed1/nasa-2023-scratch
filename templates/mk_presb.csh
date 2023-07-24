@@ -83,7 +83,6 @@ PARAMS
 if ( -e "$src/../TEMP_profile.txt") then # NOTE: We're checking just for existence of a specifically named user profile
   echo '1               19. User Input Temperature Flag: 0 => Std. Atmosphere, 1 => user input' >> $file
   # NOTE: ATT Data already given in Fahrenheit, altitude given in 1000s of feet. Will convert accordingly
-  #cat $src/SplineAtmos-20081028.txt | awk '{if ( $1 < 90001 ) {printf("%-7d %8.2f\n", int($1), $2*9/5+32)}}' >! tmp.txt 
   cat $src/../TEMP_profile.txt | awk '{if ( $1*1000*0.3048006 < 90001 ) {printf("%8.5f %8.13f\n", $1*1000*0.3048006, $2)}}' >! tmp.txt 
   @ lines = `wc -l tmp.txt | awk '{print $1}'`
   printf "%-5d %9s If temperature flag is 1, then input the number of user altitudes (m) temperatures (F)\n" "$lines" >> $file
@@ -97,24 +96,21 @@ endif
 if ( -e "$src/../WINDX_profile.txt" &&  -e "$src/../WINDY_profile.txt") then
   echo '1               20.User Input Wind Flag: 0 => No wind, 1 => user input wind profile' >> $file
   # NOTE: I don't know the units for wind velocity, I think it's feet/s? Need to change
-  # cat $src/SplineAtmos-20081028.txt | awk '{if ( $1 < 90001 ) {printf("%-7d %8.2f\n", int($1), $7)}}' >! tmp.txt
-  cat $src/../WINDX_profile.txt | awk '{if ( $1*1000*ftmfac < 90001 ) {printf("%-7d %8.2f\n", $1*1000*0.3048006, $7)}}' >! tmp.txt
+  cat $src/../WINDX_profile.txt | awk '{if ( $1*1000*ftmfac < 90001 ) {printf(""%8.5f %8.13f\n", $1*1000*0.3048006, $7)}}' >! tmp.txt
   @ lines = `wc -l tmp.txt | awk '{print $1}'`
   printf "%-5d %9s number of altitude (m) X-wind (m/s) pairs\n" "$lines" >> $file
   cat $file tmp.txt > ${file}.tmp
   \mv -f ${file}.tmp $file
   \rm -f tmp.txt
   printf "%-5d %9s number of altitude (m) Y-wind (m/s) pairs\n" "$lines" >> $file
-  #cat $src/SplineAtmos-20081028.txt | awk '{if ( $1 < 90001 ) {printf("%-7d %8.2f\n", int($1), $6)}}' >> $file
-  cat $src/../WINDY_profile.txt | awk '{if ( $1*1000*0.3048006 < 90001 ) {printf("%-7d %8.2f\n", $1*1000*0.3048006, $7)}}' >! tmp.txt
+  cat $src/../WINDY_profile.txt | awk '{if ( $1*1000*0.3048006 < 90001 ) {printf("%8.5f %8.13f\n", $1*1000*0.3048006, $7)}}' >! tmp.txt
 else
   echo '0               20.User Input Wind Flag: 0 => No wind, 1 => user input wind profile' >> $file
 endif
 
 if ( -e "$src/../HUMIDITY_profile.txt") then # NOTE: We're checking just for existence of a specifically named user profile
   echo '1               21.User Input relative humidity flag: 0 => Std. Atmosphere, 1 => user input RH profile' >> $file
-  #cat $src/SplineAtmos-20081028.txt | awk '{if ( $1 < 90001 ) {printf("%-7d %8.2f\n", int($1), $2*9/5+32)}}' >! tmp.txt 
-  cat $src/../HUMIDITY_profile.txt | awk '{if ( $1*1000*0.3048006 < 90001 ) {printf("%-7d %8.13f\n", $1*1000*0.3048006, $2)}}' >! tmp.txt 
+  cat $src/../HUMIDITY_profile.txt | awk '{if ( $1*1000*0.3048006 < 90001 ) {printf("%8.5f %8.13f\n", $1*1000*0.3048006, $2)}}' >! tmp.txt 
   @ lines = `wc -l tmp.txt | awk '{print $1}'`
   printf "%-5d %9s If humidity flag is 1, then input the number of user altitudes (m) relative humidity (%)\n" "$lines" >> $file
   cat $file tmp.txt > ${file}.tmp
