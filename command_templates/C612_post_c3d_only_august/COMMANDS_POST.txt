@@ -1,0 +1,15 @@
+sboom2quest.pl -v
+cd QUEST_loudness
+jar cf ../loudness.bundle.xml loudness.*.xml
+cd ..
+
+# Generate QUEST datafiles for nearfield and ground signatures
+
+# resample line sensore to uniform spacing
+domany -v -r cases -d BEST -a "/FLOW" -c "mk_sensor_uniform.pl -v -f lineSensor_L6.dat -n 200" -f
+
+# resample ground signature
+domany -v -r cases -d sboom -c "mk_sensor_uniform.pl -v -f SBground.sig -n 200" -f 
+
+sensorsfields2quest.pl
+# now you can use quest_prep.csh

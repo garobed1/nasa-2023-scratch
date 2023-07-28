@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.stats import norm, multivariate_normal, lognorm
 from scipy.sparse import diags
 from scipy.interpolate import interp1d
@@ -41,6 +40,7 @@ def unbiased_sample_cov_estimator(datat, norm = True):
         # import pdb; pdb.set_trace()
 
     if 0:
+        import matplotlib.pyplot as plt
         from matplotlib import colors
         from matplotlib import cm
         # make indices altitude?
@@ -143,6 +143,8 @@ def get_kl_coefficients(datat, norm=False):
 
 
 if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+
     # needed parameters
     name = 'testprob'
     N = 33

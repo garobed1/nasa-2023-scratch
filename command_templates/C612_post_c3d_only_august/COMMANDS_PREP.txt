@@ -1,0 +1,19 @@
+#create database via quest_prep.csh
+
+# modified version of questDB that links to the CFD runs in a different directory
+# Currently the database uses 17 (L4) Clenshaw Curtis points for mach number
+# Only modification you can make without rerunning anything is to use a lower
+# level for mach number quadrature, since the points are nested
+questDBC612relink.pl -f
+
+# NOTE: DO NOT PREPARE ANY C3D STUFF, RELY ON DATABASE LINKING
+# Prepare Cart3D input files based on templates
+# quest2cart.pl -v
+# Prepare geometry
+# quest2geometry.pl -v
+
+# Prepare weather profiles
+quest2klfield.py -ws -p -e 4 -d partial_0818_data.json
+
+# Prepare sBOOM input files based on templates
+quest2sboom.csh

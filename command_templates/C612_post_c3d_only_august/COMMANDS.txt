@@ -1,0 +1,12 @@
+# Evaluate farfield. These run in cases/case.??.?????/sboom
+# directories and use the CFD link in each cases/case.??.????? directory
+
+# First, run case.00.00000 first alone since the signal alignment references that
+cd cases/case.00.00000/sboom
+./c3d_close_dpp.py  -df 20.0 -ap 45.0 -pb -cs 38.5 -sv -0.0004 -ce 60.0 -nc 20 -sd 82.296 -sf -sg -sb ../CFD/BEST/FLOW/lineSensor_RoL3.a.phi0.dat
+cd -
+
+# Now run all other cases
+shopt -s extglob
+\ls -1d cases/case.??.!(00000)/sboom | parallel -j 40 -u --sshloginfile $PBS_NODEFILE "cd {}; ./c3d_close_dpp.py  -df 20.0 -ap 45.0 -pb -cs 38.5 -sv -0.0004 -ce 60.0 -nc 20 -sd 82.296 -sf -sg -sb ../CFD/BEST/FLOW/lineSensor_RoL3.a.phi0.dat"
+shopt -u extglob
