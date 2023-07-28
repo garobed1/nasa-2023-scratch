@@ -301,7 +301,7 @@ sub cfdDB {
   print $fh scalar localtime;
   print $fh "\n";
 
-  $i=0;
+  my $i=0;
   foreach (@cfd_cases) {
     print $fh 'case.00.' . sprintf("%05d",$i), " $_\n";
     $i++;
