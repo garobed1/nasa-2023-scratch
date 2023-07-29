@@ -39,6 +39,10 @@ if ( -e ../input.cntl ) then
   set mach = `grep '^Mach' ../input.cntl | awk '{print $2}'`
 endif
 
+if ( -e ../CFD/input.cntl ) then
+  set mach = `grep '^Mach' ../CFD/input.cntl | awk '{print $2}'`
+endif
+
 if ( -e ../QUEST.dat ) then
   grep '^altitude' ../QUEST.dat >& /dev/null
   if ( 0 == $status ) then
