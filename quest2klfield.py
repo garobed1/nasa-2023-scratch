@@ -179,7 +179,10 @@ for prop in proplist:
     casenumlist = []
 
     badcasecounter = 0
-    for case in os.listdir(case_dir):
+
+    case_list = os.listdir(case_dir)
+    case_list = [x for x in case_list if not x.startswith('CFD_')]
+    for case in case_list:
         if os.path.isdir(case_dir + '/' + case):
             # if verbose:
             #     print(f"Generating {prop} profile for {case}")

@@ -135,9 +135,11 @@ while (<$fh>) {
         $cfd{$run} = \%pv;
         $n_cfd++;
         $cfd_cases[$n_cfd] = $run; # explicitly store hash keys so we can keep order
+        $case2cfd{$case} = $n_cfd;
       }
-
-      $case2cfd{$case} = $n_cfd;
+      else { 
+      	$case2cfd{$case} = $j % ($n_cfd+1);
+      }
     }
   }
   elsif ( $line == 4+$n_evals+1) {
