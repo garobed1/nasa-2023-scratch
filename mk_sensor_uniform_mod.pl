@@ -140,7 +140,13 @@ if ( $lsf =~ /lineSensor_/ ) {
 }
 else {
   # output sBOOM ground signature
-  ($outfile = $lsf) =~ s/SBground/uniform_SBground/;
+  if ( $lsf =~ m/modSig/ ) {
+    ($outfile = $lsf) =~ s/modSig/uniform_modSig/;
+  }
+  else {
+    ($outfile = $lsf) =~ s/SBground/uniform_SBground/;
+  }
+  
 
   print "# Writing $outfile\n" if $verbose;
 

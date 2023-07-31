@@ -49,6 +49,9 @@ find sub { push @lineSensors, $File::Find::name, if (-f and
 /^uniform_SBground/ and ( $File::Find::dir =~ /sboom/ ) ) }, @caseDirs;
 
 find sub { push @lineSensors, $File::Find::name, if (-f and
+/^uniform_modSig/ and ( $File::Find::dir =~ /sboom/ ) ) }, @caseDirs;
+
+find sub { push @lineSensors, $File::Find::name, if (-f and
 /^TEMP_profile/)}, @caseDirs;
 
 find sub { push @lineSensors, $File::Find::name, if (-f and
@@ -99,6 +102,10 @@ foreach my $sensor ( @lineSensors ) {
     @ordinates = ( 'dP/Pinf', 'RHO', 'U', 'V', 'W', 'P', 'T', 'SoundSpeed' );
   }
   elsif ( $name =~ /^SBground/ ) {
+    @abscissas = ( 'Time (ms)' );
+    @ordinates = ( 'Overpressure (psf)' );
+  }
+  elsif ( $name =~ /^modSig/ ) {
     @abscissas = ( 'Time (ms)' );
     @ordinates = ( 'Overpressure (psf)' );
   }
