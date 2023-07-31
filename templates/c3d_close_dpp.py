@@ -351,7 +351,19 @@ if args.shiftAlignGround:
 
         groundShift = groundCross0 - groundCross
         
-        with open('SBground.sig', 'w') as file:
+        # write identical header to original
+        headlist = []
+        with open('SBground.sig', 'r') as file:
+            c = 0
+            for line in file:
+                if c > 2:
+                    break
+                headlist.append(line)
+                c += 1
+
+        with open('SBground_shift.sig', 'w') as file:
+            for line in headlist:
+                file.write(line)
             for dat in groundPoints:
                 file.write(f'{(dat[0]+groundShift):.16e} {dat[1]:.16e}\n')
 
