@@ -43,7 +43,6 @@ Ngrid = args.numpoints
 datadir = args.datadir
 exclude = args.exclude_upper
 hd = args.donthumiditytodew
-ws = args.writeoriginalstats
 # mhflag = args.modelhumidity
 
 proplist = ['TEMP', 'HUMIDITY']
