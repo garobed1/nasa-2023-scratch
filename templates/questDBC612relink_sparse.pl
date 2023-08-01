@@ -99,11 +99,12 @@ print " o Parsing QUEST $ifile\n" if $verbose;
 
 my $line    = 0;
 my $plength = 0; # used for STDOUT
-
-# need to count CFD runs first
 while (<$fh>) {
+  next unless /\w/; # skip unless line contains alphanumeric character
   $line++;
+  next if /^#/;     # skip comments
   chomp;
+
   if ( 3 == $line ) {
     # line 3 has 4 fields, see QUEST manual
     ($n_independent_evals, $n_evals, $quest_major_rev, $quest_minor_rev) = split ' ';
@@ -119,7 +120,7 @@ while (<$fh>) {
       $ivar++;
     }
   }
-  if ( $line > 4 && $line <= (4+$n_evals)) {
+  elsif ( $line > 4 && $line <= (4+$n_evals)) {
     # list of required realizations
     my ($i, $j, $level, $seq, $nlev, @var_vals) = split ' ';
 
@@ -129,60 +130,19 @@ while (<$fh>) {
     if ( @cfd_params) {
       my $run; # string representing cfd run
       my %pv;  # parameter values
+
       foreach (@cfd_params) {
         $run .= "_" if $run;
         $run .= "$var_names[$_]" . "$var_vals[$_]";
         $pv{"$var_names[$_]"} = $var_vals[$_];
       }
+
       if ( not exists $cfd{$run} ) {
         $cfd{$run} = \%pv;
         $n_cfd++;
-        print $line;
-        print $n_cfd;
         $cfd_cases[$n_cfd] = $run; # explicitly store hash keys so we can keep order
       }
-    }
-  }
-
-}
-
-$line = 0;
-seek $fh, 0, 0;
-while (<$fh>) {
-  next unless /\w/; # skip unless line contains alphanumeric character
-  $line++;
-  next if /^#/;     # skip comments
-  chomp;
-
-  if ( 3 == $line ) {
-    # line 3 has 4 fields, see QUEST manual
-    ($n_independent_evals, $n_evals, $quest_major_rev, $quest_minor_rev) = split ' ';
-  }
-  # elsif ( 4 == $line ) {
-  #   # line 4 has names of random variables
-  #   @var_names = split ' ';
-  #   my $ivar=0;
-  #   foreach (@var_names) {
-  #     if ( flowParam($_) ) {
-  #       push @cfd_params, $ivar;
-  #     }
-  #     $ivar++;
-  #   }
-  # }
-  elsif ( $line > 4 && $line <= (4+$n_evals)) {
-    # list of required realizations
-    my ($i, $j, $level, $seq, $nlev, @var_vals) = split ' ';
-
-    my $case = sprintf("%02d.%05d",$level,$j);
-    push @{$cases{$case}}, @var_vals;
-
-    if ( @cfd_params) {
-      $case2cfd{$case} = $j/($n_evals/($n_cfd+1));
-    }
-  }
-  elsif ( $line == 4+$n_evals+1) {
-    if (/^1/) {
-      $have_prepconfig = 1;
+      $case2cfd{$case} = $n_cfd;
     }
   }
   elsif ( $line > 4+$n_evals+1) {
