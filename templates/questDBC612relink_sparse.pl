@@ -104,7 +104,10 @@ my $plength = 0; # used for STDOUT
 while (<$fh>) {
   $line++;
   chomp;
-  
+  if ( 3 == $line ) {
+    # line 3 has 4 fields, see QUEST manual
+    ($n_independent_evals, $n_evals, $quest_major_rev, $quest_minor_rev) = split ' ';
+  }
   if ( $line > 4 && $line <= (4+$n_evals)) {
     # list of required realizations
     my ($i, $j, $level, $seq, $nlev, @var_vals) = split ' ';
