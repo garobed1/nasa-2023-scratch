@@ -108,6 +108,17 @@ while (<$fh>) {
     # line 3 has 4 fields, see QUEST manual
     ($n_independent_evals, $n_evals, $quest_major_rev, $quest_minor_rev) = split ' ';
   }
+  elsif ( 4 == $line ) {
+    # line 4 has names of random variables
+    @var_names = split ' ';
+    my $ivar=0;
+    foreach (@var_names) {
+      if ( flowParam($_) ) {
+        push @cfd_params, $ivar;
+      }
+      $ivar++;
+    }
+  }
   if ( $line > 4 && $line <= (4+$n_evals)) {
     # list of required realizations
     my ($i, $j, $level, $seq, $nlev, @var_vals) = split ' ';
@@ -147,17 +158,17 @@ while (<$fh>) {
     # line 3 has 4 fields, see QUEST manual
     ($n_independent_evals, $n_evals, $quest_major_rev, $quest_minor_rev) = split ' ';
   }
-  elsif ( 4 == $line ) {
-    # line 4 has names of random variables
-    @var_names = split ' ';
-    my $ivar=0;
-    foreach (@var_names) {
-      if ( flowParam($_) ) {
-        push @cfd_params, $ivar;
-      }
-      $ivar++;
-    }
-  }
+  # elsif ( 4 == $line ) {
+  #   # line 4 has names of random variables
+  #   @var_names = split ' ';
+  #   my $ivar=0;
+  #   foreach (@var_names) {
+  #     if ( flowParam($_) ) {
+  #       push @cfd_params, $ivar;
+  #     }
+  #     $ivar++;
+  #   }
+  # }
   elsif ( $line > 4 && $line <= (4+$n_evals)) {
     # list of required realizations
     my ($i, $j, $level, $seq, $nlev, @var_vals) = split ' ';
