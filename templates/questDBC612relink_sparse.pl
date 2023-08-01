@@ -145,6 +145,11 @@ while (<$fh>) {
       $case2cfd{$case} = $n_cfd;
     }
   }
+  elsif ( $line == 4+$n_evals+1) {
+    if (/^1/) {
+      $have_prepconfig = 1;
+    }
+  }
   elsif ( $line > 4+$n_evals+1) {
 
     next if /==== begin prepconfig configuration/;
