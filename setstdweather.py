@@ -70,6 +70,26 @@ for prop in proplist:
 
     altitudes, datat, means, stdvs, name = preprocess_data(data_file, prop, Ngrid)
 
+    # if exclude > 0, remove upper indices
+    if exclude > 0:
+        altitudes = altitudes[:-exclude]
+        datat = datat[:-exclude, :]
+        means = means[:-exclude]
+        stdvs = stdvs[:-exclude]
+
+    Ndat = datat.shape[1]
+    N = datat.shape[0]
+
+    if verbose:
+        print(f"Processing {prop}, {N} altitudes")
+
+
+    if verbose:
+        print(f"Generating {prop} (MEAN) profiles for all cases")
+
+    casecounter = 0
+    for case in os.listdir(case_dir):
+        casecounter += 1
 
     case_list = os.listdir(case_dir)
     case_list = [x for x in case_list if not x.startswith('CFD_')]
