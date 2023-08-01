@@ -95,6 +95,9 @@ for prop in proplist:
     case_list = [x for x in case_list if not x.startswith('CFD_')]
     for case in case_list:
         if os.path.isdir(case_dir + '/' + case):
+            # remove TEMP
+            os.remove(case_dir + '/' + case + '/' + f'TEMP_profile.txt')
+
             with open(case_dir + '/' + case + '/' + f'{prop}_profile.txt' , 'w') as wf:
                 for i in range(N):
                     wf.write(f'{altitudes[i]} {0.0:1.13f}\n')
