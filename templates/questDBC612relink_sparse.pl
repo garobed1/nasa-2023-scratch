@@ -134,6 +134,7 @@ while (<$fh>) {
 }
 
 $line = 0;
+seek $fh, 0, 0;
 while (<$fh>) {
   next unless /\w/; # skip unless line contains alphanumeric character
   $line++;
