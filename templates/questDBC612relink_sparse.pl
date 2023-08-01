@@ -126,6 +126,8 @@ while (<$fh>) {
       if ( not exists $cfd{$run} ) {
         $cfd{$run} = \%pv;
         $n_cfd++;
+        print $line;
+        print $n_cfd;
         $cfd_cases[$n_cfd] = $run; # explicitly store hash keys so we can keep order
       }
     }
