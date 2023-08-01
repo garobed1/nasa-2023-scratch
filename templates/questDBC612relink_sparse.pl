@@ -130,7 +130,7 @@ while (<$fh>) {
 
 }
 
-$line = 0
+$line = 0;
 while (<$fh>) {
   next unless /\w/; # skip unless line contains alphanumeric character
   $line++;
