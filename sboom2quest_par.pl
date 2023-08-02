@@ -60,7 +60,7 @@ opendir(my $dh, $dbdir) || die "Can't open directory: $!";
 while (readdir $dh) {
   my $dir = File::Spec->catdir($dbdir, $_); 
   next unless (-d $dir);
-  next unless ( $dir =~ /case\.${sec}\d+/ );
+  next unless ( $dir =~ /case\.\d\d\.${sec}\d+/ );
   push @caseDirs, $dir;
 }
 closedir $dh;
