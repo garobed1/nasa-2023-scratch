@@ -21,6 +21,7 @@ use XML::LibXML;
 local $PROGRAM_NAME = basename($PROGRAM_NAME);
 
 my $verbose;
+my $sec;
 my $help;
 my $cmdline = $PROGRAM_NAME;
 
@@ -34,7 +35,7 @@ if (@ARGV) {
   }
   GetOptions(
     'v'     => \$verbose,
-    'p=s'     => \$sec
+    'p=s'   => \$sec
     'h'     => \$help,
     'help'  => \$help,
     ""      => \$help
