@@ -35,7 +35,7 @@ if (@ARGV) {
   }
   GetOptions(
     'v'     => \$verbose,
-    'p=s'   => \$sec
+    'p=s'   => \$sec,
     'h'     => \$help,
     'help'  => \$help,
     ""      => \$help
