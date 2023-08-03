@@ -20,7 +20,7 @@ use XML::LibXML;
 
 my $sec;
 my $help;
-my $cmdline = $PROGRAM_NAME
+my $cmdline = $PROGRAM_NAME;
 
 if (@ARGV) {
   foreach (@ARGV) {
