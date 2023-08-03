@@ -15,6 +15,7 @@ use FileHandle;
 use File::Basename;
 use File::Spec;
 use File::Find;
+use Getopt::Long;
 use Cwd;
 use XML::LibXML;
 
