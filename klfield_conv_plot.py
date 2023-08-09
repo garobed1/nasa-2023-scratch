@@ -20,6 +20,7 @@ python3 ~/nasa-2023-scratch/klfield_conv_plot.py sboom_atm_uq_temphumid_lhs_kl5l
 # NOTE: Looking specifically for KLTEMP, KLHUMIDITY, etc.
 
 # UQ method names
+plt.rcParams['font.size'] = 16
 qtypenamedict = {
     'dcc':'Dense CC',
     'spcc':'Sparse CC',
@@ -143,11 +144,11 @@ for prop in props:
         if cdict['prop'] == prop:
             plt.plot(cdict['s'], np.sum(cdict['mean'], axis=1)/cdict['mean'].shape[1], label = f"KL {cdict['KL']}, {cdict['qtype']}")
     # [np.sum(cdict['mean'][i]) for i in range(len(cdict['s']))]
-    plt.ylabel(f'KL {prop.upper()} Field Mean Error (L1)')
+    plt.ylabel(f'Mean Error (L1)')
     plt.xlabel('Num Samples')
     plt.yscale('log')
-    plt.legend()
-    plt.title('KL expansion mean error sample convergence')
+    plt.legend(loc = 0, fontsize=11)
+    plt.title(f'KL {prop.upper()} Field Convergence')
     plt.savefig(f'{root}/pictures/kl{prop.upper()}meanconv.png', bbox_inches='tight')
     plt.clf()
 
@@ -157,10 +158,10 @@ for prop in props:
             plt.plot(cdict['s'], np.sum(cdict['sigma']/cdict['mean'].shape[1], axis=1), label = f"KL {cdict['KL']}, {cdict['qtype']}")
     # [np.sum(cdict['sigma'][i]) for i in range(len(cdict['s']))]
     plt.yscale('log')
-    plt.ylabel(f'KL {prop.upper()} Field Sigma Error (L1)')
+    plt.ylabel(f'Sigma Error (L1)')
     plt.xlabel('Num Samples')
-    plt.legend()
-    plt.title('KL expansion sigma error sample convergence')
+    plt.legend(loc = 0, fontsize=11)
+    plt.title(f'KL {prop.upper()} Field Convergence')
     plt.savefig(f'{root}/pictures/kl{prop.upper()}stdconv.png', bbox_inches='tight')
     plt.clf()
     # import pdb; pdb.set_trace()

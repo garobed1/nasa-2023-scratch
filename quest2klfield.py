@@ -32,6 +32,7 @@ HUMIDITY_path_1 H1
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--verbose', action='store_true') 
 parser.add_argument('-p', '--plot', action='store_true') 
+parser.add_argument('-P', '--superplot', action='store_true') 
 parser.add_argument('-d', '--datadir', action='store')
 # if given, don't convert humidity to dew point temperature, create KL, then convert back 
 # not recommended, better to convert to dew point using corresponding temp
@@ -51,6 +52,7 @@ args = parser.parse_args()
 verbose = args.verbose
 Ngrid = args.numpoints
 pflag = args.plot
+spflag = args.superplot
 datadir = args.datadir
 exclude = args.exclude_upper
 hd = args.donthumiditytodew
@@ -77,6 +79,7 @@ Ngen = len(os.listdir(case_dir))
 if pflag:
     import matplotlib.pyplot as plt
     # store true, unconverted values in dict format
+    plt.rcParams['font.size'] = 16
     ppathgent = {}
     d1,d2,d3,d4,d5 = preprocess_data(data_file, 'HUMIDITY', Ngrid)
     for item in trueproplist:
@@ -250,7 +253,7 @@ for prop in proplist:
                 # If we're modeling temperature as well, convert using the corresponding temp values
                 elif os.path.isfile(case_dir + '/' + case +'/TEMP_profile.txt'):
                     # temp_k = np.zeros(N)
-                    temp_use = np.zeros(N)
+                    temp_use = np.zeros([N,1])
                     with open(case_dir + '/' + case + '/' + f'TEMP_profile.txt' , 'r') as wf:
                         pc = 0
                         for line in wf:
@@ -272,7 +275,7 @@ for prop in proplist:
                 #Convert pathsgen dew temp to humidity
                 # NOTE: This function ensures dew point is always 
                 # less than dry bulb temp
-                if any((dew_pt_use - temp_use)>0) :
+                if any((dew_pt_use - temp_use)>0):
                     badcasecounter += 1
 
                 work = dew2hum(dew_pt_use, temp_use)
@@ -306,7 +309,15 @@ for prop in proplist:
     if pflag and trunc:
         pname = prop
 
+        pprop2label = {
+            "TEMP": "Temperature (F)",
+            "HUMIDITY": "Relative Humidity (%)",
+            "DEWPOINT": "Dew Point Temperature (F)",
+        }
+
         pproplist = [prop]
+        if prop == 'HUMIDITY' and not hd:
+            pproplist = ['HUMIDITY', 'DEWPOINT']
         if prop == 'TEMPHUMID':
             pproplist = ['TEMP', 'HUMIDITY', 'DEWPOINT']
 
@@ -324,8 +335,8 @@ for prop in proplist:
             plt.xlim(20., 110.)
             plt.ylim(0., 100.)
             plt.title(f"Temp and Humidity correlation at {altitudes[altind]:.2f} thousand feet")
-            plt.xlabel('Temp (F)')
-            plt.ylabel('Humidity (%)')
+            plt.xlabel('Temperature (F)')
+            plt.ylabel('Relative Humidity (%)')
             plt.savefig(f"{root}/{prop}_t{trunc}_{casecounter}_temp_hum_corr.png", bbox_inches='tight')
             plt.clf()
 
@@ -371,7 +382,34 @@ for prop in proplist:
 
             mpm1s = np.array([[pmeans+pstdvs], [pmeans-pstdvs]]).T.reshape([Ntrue, 2])
             mpm1spaths = np.array([[pmeanpaths+pstdvpaths], [pmeanpaths-pstdvpaths]]).T.reshape([Ntrue, 2])
-            plt.plot(ppathgent[pprop], paltitudes,  '-', linewidth=1.0, color = '0.3', alpha = 0.2, solid_capstyle='projecting')
+            
+            # plt.plot(ppathgent[pprop], paltitudes,  '-', linewidth=1.0)
+            # plt.plot([], [], '-', linewidth=1.0,  label = 'Synthetic Data (QUEST)')
+            plt.plot(pdatat, paltitudes,  '-', linewidth=1.3, color = '0.3', alpha = 0.2,  solid_capstyle='projecting')
+            plt.plot([], [], '-', linewidth=1.0,  label = 'Original Data')
+            # import pdb; pdb.set_trace()
+            plt.plot(pmeans, paltitudes, 'k-', linewidth=1.6)
+            plt.plot([], [], 'k-', linewidth=1.6, label = r'$\mu$ (Original)')
+            plt.plot(mpm1s, paltitudes, 'k--', linewidth=1.6)
+            plt.plot([], [], 'k--', linewidth=1.6, label = r'$\mu \pm 1\sigma$ (Original)')
+            plt.plot(pmeanpaths, paltitudes, 'b-', linewidth=1.6)
+            plt.plot([], [], 'b-', linewidth=1.6, label = r'$\mu$ (Synthetic)')
+            plt.plot(mpm1spaths, paltitudes, 'b--', linewidth=1.6)
+            plt.plot([], [], 'b--', linewidth=1.6, label = r'$\mu \pm 1\sigma$ (Synthetic)')
+            if pprop == 'HUMIDITY':
+                plt.xlim([0, 100])
+            xlims = plt.gca().get_xlim()
+            # plt.plot([], [], 'k-', linewidth=1.6,  label = 'path at center index')
+            # if prop =='HUMIDITY' and not hd:
+            #     pname = 'DEW_POINT_TEMP'
+            plt.xlabel(pprop2label[pprop])
+            plt.ylabel('Altitude (1000 ft)')
+            plt.legend(fontsize=11)
+            plt.savefig(f'{root}/{pprop}_t{trunc}_{casecounter}_cases_DATA_QUEST.png', bbox_inches="tight", dpi=500)
+            # xlims = plt.gca().get_xlim()
+            plt.clf()
+
+            plt.plot(ppathgent[pprop], paltitudes,  '-', linewidth=1.3, color = '0.3', alpha = 0.2, solid_capstyle='projecting')
             plt.plot([], [], '-', linewidth=1.0,  label = 'Synthetic Data (QUEST)')
             # plt.plot(pdatat, paltitudes,  '-', linewidth=1.0)
             # plt.plot([], [], '-', linewidth=1.0,  label = 'Original Data')
@@ -388,34 +426,32 @@ for prop in proplist:
             # plt.plot([], [], 'k-', linewidth=1.6,  label = 'path at center index')
             # if prop =='HUMIDITY' and not hd:
             #     pname = 'DEW_POINT_TEMP'
-            plt.xlabel(pprop)
+            # plt.xlim(xlims)
+            if pprop == 'HUMIDITY':
+                plt.xlim([0, 100])
+            else:
+                plt.xlim(xlims)
+            plt.xlabel(pprop2label[pprop])
             plt.ylabel('Altitude (1000 ft)')
-            plt.legend()
+            plt.legend(fontsize=11)
             plt.savefig(f'{root}/{pprop}_t{trunc}_{casecounter}_cases_pathsgen_QUEST.png', bbox_inches="tight", dpi=500)
             plt.clf()
 
-            # plt.plot(ppathgent[pprop], paltitudes,  '-', linewidth=1.0)
-            # plt.plot([], [], '-', linewidth=1.0,  label = 'Synthetic Data (QUEST)')
-            plt.plot(pdatat, paltitudes,  '-', linewidth=1.0, color = '0.3', alpha = 0.2,  solid_capstyle='projecting')
-            plt.plot([], [], '-', linewidth=1.0,  label = 'Original Data')
-            # import pdb; pdb.set_trace()
-            plt.plot(pmeans, paltitudes, 'k-', linewidth=1.6)
-            plt.plot([], [], 'k-', linewidth=1.6, label = r'$\mu$ (Original)')
-            plt.plot(mpm1s, paltitudes, 'k--', linewidth=1.6)
-            plt.plot([], [], 'k--', linewidth=1.6, label = r'$\mu \pm 1\sigma$ (Original)')
-            plt.plot(pmeanpaths, paltitudes, 'b-', linewidth=1.6)
-            plt.plot([], [], 'b-', linewidth=1.6, label = r'$\mu$ (Synthetic)')
-            plt.plot(mpm1spaths, paltitudes, 'b--', linewidth=1.6)
-            plt.plot([], [], 'b--', linewidth=1.6, label = r'$\mu \pm 1\sigma$ (Synthetic)')
-            
-            # plt.plot([], [], 'k-', linewidth=1.6,  label = 'path at center index')
-            # if prop =='HUMIDITY' and not hd:
-            #     pname = 'DEW_POINT_TEMP'
-            plt.xlabel(pprop)
-            plt.ylabel('Altitude (1000 ft)')
-            plt.legend()
-            plt.savefig(f'{root}/{pprop}_t{trunc}_{casecounter}_cases_DATA_QUEST.png', bbox_inches="tight", dpi=500)
-            plt.clf()
+            if spflag:
+                plt.rcParams.update({'font.size': 16})
+                plt.plot(pdatat, paltitudes,  '-', linewidth=1.3, color = '0.3', alpha = 0.2,  solid_capstyle='projecting')
+                plt.plot([], [], '-', linewidth=1.0, color = '0.3', label = 'Original Data')
+                plt.plot(ppathgent[pprop], paltitudes,  '-', linewidth=1.3, alpha = 1.0, solid_capstyle='projecting')
+                plt.plot([], [], '-', linewidth=1.0,  label = 'Synthetic Data (QUEST)')
+
+
+                plt.xlabel(pprop2label[pprop])
+                plt.ylabel('Altitude (1000 ft)')
+                plt.legend()
+                plt.savefig(f'{root}/{pprop}_t{trunc}_{casecounter}_cases_overlaid.png', bbox_inches="tight", dpi=500)
+                plt.clf()
+
+                plt.rcParams.update({'font.size': 10})
 
             # write pmeans and mpm1s for later Quest stuff
             if ws:
@@ -492,7 +528,7 @@ for prop in proplist:
         altind = 9
         for j in [altind]:#range(N):
             maxer = np.max(kdetv[j,:])
-            plt.plot(xs[j,:], kdetv[j,:], 'k-', label='true pdf') #/maxer + altitudes[j]
+            plt.plot(xs[j,:], kdetv[j,:], 'k-', label=f'Data PDF ({altitudes[altind]:.1f} thousand)') #/maxer + altitudes[j]
             for i in range(nsamp - 1):
                 # y2 = [altitudes[j], altitudes[j]]
                 # y1 = [kdemv[j,i]/maxer+y2[0], kdemv[j,i+1]/maxer+y2[1]]
@@ -503,8 +539,8 @@ for prop in proplist:
                                  color=colourmap(kdemv[j,i]/np.max(kdemv[3,:]))
                                  ,alpha=0.6)
         plt.title(f'{prop} PDF at {altitudes[altind]:.1f} thousand ft')
-        plt.ylabel(f'PDF({prop})')
-        plt.xlabel(prop)
+        plt.ylabel(f'PDF({pprop2label[prop]})')
+        plt.xlabel(pprop2label[prop])
         plt.savefig(f'{root}/{prop}_t{trunc}_{casecounter}_cases_PDF_comp.png', bbox_inches="tight", dpi=500)
 
 

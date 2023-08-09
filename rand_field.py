@@ -43,15 +43,19 @@ def unbiased_sample_cov_estimator(datat, norm = True):
         import matplotlib.pyplot as plt
         from matplotlib import colors
         from matplotlib import cm
+        plt.rcParams['font.size'] = 16
+
         # make indices altitude?
         cmap = cm.coolwarm
         plt.matshow(mat, cmap=cmap, norm=colors.CenteredNorm())
+        plt.xlabel('Altitude Index')
+        plt.ylabel('Altitude Index')
         plt.colorbar()
         plt.savefig('covmat.png', bbox_inches='tight')
         plt.clf()
         plt.scatter(np.arange(0,N), np.linalg.eig(mat)[0])
-        plt.xlabel('eig ind')
-        plt.ylabel('eigenval')
+        plt.xlabel('Sorted Eigenvalue Index')
+        plt.ylabel('Eigenvalue')
         plt.savefig('eigdecay.png', bbox_inches='tight')
         plt.clf()
         import pdb; pdb.set_trace()
@@ -144,6 +148,7 @@ def get_kl_coefficients(datat, norm=False):
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
+    plt.rcParams['font.size'] = 16
 
     # needed parameters
     name = 'testprob'
@@ -154,9 +159,10 @@ if __name__ == '__main__':
     #AND DATA AS COMMAND LINE ARGUMENT
 
     Ndatplot = 200
-    Ngen = 200
+    Ngen = 5
 
     # manufactured data
+    exclude = 4
     Ndat = 100
     max_alt = 10000
     corrfrac = 1.
@@ -182,6 +188,11 @@ if __name__ == '__main__':
     if len(sys.argv) > 1:
         datapath = sys.argv[1]
         altitudes, datat, means, stdvs, name = preprocess_data(datapath, prop)
+        if exclude > 0:
+            altitudes = altitudes[:-exclude]
+            datat = datat[:-exclude, :]
+            means = means[:-exclude]
+            stdvs = stdvs[:-exclude]
         Ndat = datat.shape[1]
         N = datat.shape[0]
     else: # generate own data
@@ -221,18 +232,24 @@ if __name__ == '__main__':
     meanpaths = np.mean(pathsgent, axis=1)
     stdvpaths = np.std(pathsgent, axis=1)
 
+    pprop2label = {
+        "TEMP": "Temperature (F)",
+        "HUMIDITY": "Relative Humidity (%)",
+        "DEWPOINT": "Dew Point Temperature (F)",
+    }
+
     mpm1s = np.array([[means+stdvs], [means-stdvs]]).T.reshape([N, 2])
     mpm1spaths = np.array([[meanpaths+stdvpaths], [meanpaths-stdvpaths]]).T.reshape([N, 2])
     # plotting starts here
     datplot = np.random.randint(0, Ndat, size = Ndatplot)
-    plt.plot(datat[:,datplot], altitudes, '-', linewidth=1.0)
+    plt.plot(datat[:,datplot], altitudes, '-', linewidth=1.0, color = '0.3', alpha = 0.2, solid_capstyle='projecting')
     plt.plot([], [], '-', linewidth=1.0,  label = 'Original Data')
     plt.plot(means, altitudes, 'k-', linewidth=1.6)
     plt.plot([], [], 'k-', linewidth=1.6, label = r'$\mu$')
     plt.plot(mpm1s, altitudes, 'k--', linewidth=1.6)
     plt.plot([], [], 'k--', linewidth=1.6, label = r'$\mu \pm 1\sigma$')
     plt.legend()
-    plt.xlabel(prop)
+    plt.xlabel(pprop2label[prop])
     plt.ylabel('Altitude (1000 ft)')
     plt.savefig(f'{name}_{prop}_pathsinit.png', bbox_inches="tight", dpi=500)
     plt.clf()
@@ -247,12 +264,11 @@ if __name__ == '__main__':
     plt.plot([], [], 'b-', linewidth=1.6, label = r'$\mu$ (Synthetic)')
     plt.plot(mpm1spaths, altitudes, 'b--', linewidth=1.6)
     plt.plot([], [], 'b--', linewidth=1.6, label = r'$\mu \pm 1\sigma$ (Synthetic)')
-    plt.xlabel(prop)
+    plt.xlabel(pprop2label[prop])
     plt.ylabel('Altitude (1000 ft)')
     plt.legend()
     plt.savefig(f'{name}_{prop}_t{trunc}_pathsgen.png', bbox_inches="tight", dpi=500)
     plt.clf()
-
     # now the mean, std, pdf errors
     # sig = 3
     # nsamp = 2000

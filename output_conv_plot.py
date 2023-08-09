@@ -14,7 +14,7 @@ cd ~/temp_cc
 python3 ~/nasa-2023-scratch/output_conv_plot.py sboom_atm_uq_temp_dcc_kl4l* sboom_atm_uq_temp_lhs_kl4l*
 """
 # output measure to check for
-metric = 'seld'
+metric = 'PL'
 
 # UQ method names
 qtypenamedict = {
@@ -84,8 +84,14 @@ for key, cdict in datdict.items():
 These are "exact" values for comparison. Taken from the full data
 TODO: Replace as relevant
 """
-tm = 78.13603476287041
-ts = 0.1485741352415892
+# # TEMP SELD
+# tm = 78.13603476287041
+# ts = 0.1485741352415892
+
+# TEMPHUMID PL
+tm = 68.64733643998947
+ts = 2.8641181142036785
+
 
 
 for key, cdict in datdict.items():
