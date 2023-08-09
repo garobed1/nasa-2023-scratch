@@ -1,4 +1,8 @@
 #create database via quest_prep.csh
 questDB.pl -f
+
+#generate KL parameters
 quest2klfield.py -ws -p -e 4 -d partial_0818_data.json
+
+# set up sboom directories
 quest2sboom.csh

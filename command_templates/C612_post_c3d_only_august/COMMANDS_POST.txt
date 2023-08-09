@@ -12,4 +12,4 @@ domany -v -r cases -d BEST -a "/FLOW" -c "mk_sensor_uniform.pl -v -f lineSensor_
 domany -v -r cases -d sboom -c "mk_sensor_uniform.pl -v -f SBground.sig -n 200" -f 
 
 sensorsfields2quest.pl
-# now you can use quest_prep.csh
+# now you can use quest_post.csh

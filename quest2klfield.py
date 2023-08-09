@@ -61,6 +61,8 @@ ws = args.writeoriginalstats
 # mhflag = args.modelhumidity
 
 trueproplist = ['TEMP', 'HUMIDITY', 'PRESSURE', 'WINDX', 'WINDY', 'DEWPOINT']
+
+# name your KL variables in QUEST KL_{prop}_i
 proplist = ['TEMPHUMID', 'TEMP', 'HUMIDITY', 'PRESSURE', 'WINDX', 'WINDY']
 # proplist = ['TEMPHUMID']
 # 'TEMPHUMID' simulates both TEMP and HUMIDITY/DEW POINT together, do not use
