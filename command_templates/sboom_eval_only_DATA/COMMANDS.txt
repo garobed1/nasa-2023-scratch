@@ -1,0 +1,13 @@
+# create "case" directories, mimicking QUEST but with measured data
+python3 data2cases.py -m TEMPHUMID -d partial_0818_data.json 
+
+# create sBOOM directories, ensure mk_presb.csh and sig.dat (of interest) in templates
+quest2sboom.csh
+
+# run sboom, potentially parallelize
+\ls -1d cases/case.00.?????/sboom | xargs -P 10 -I {} sh -c "cd {}; sboom -v"
+
+# post process
+python3 dataout2numpy.py
+python3 data_post.py -v -d "['TEMP', 'HUMIDITY']_data_loud.json"
+

@@ -13,6 +13,10 @@ Ex.
 cd ~/temp_cc
 python3 ~/nasa-2023-scratch/output_conv_plot.py sboom_atm_uq_temp_dcc_kl4l* sboom_atm_uq_temp_lhs_kl4l*
 """
+
+plt.rcParams['font.size'] = 16
+
+
 # output measure to check for
 metric = 'PL'
 
@@ -55,10 +59,10 @@ for case in caselist:
 
     # get mean
     # get stdv
-    with open(f'{root}/{case}/stats/{metric}.Off-Track Angle (deg.).mean') as f:
+    with open(f'{root}/{case}/{metric}.Off-Track Angle (deg.).mean') as f:
         lines = f.readlines()
         wm = float(lines[0].split()[-1])
-    with open(f'{root}/{case}/stats/{metric}.Off-Track Angle (deg.).meansigma_m') as f:
+    with open(f'{root}/{case}/{metric}.Off-Track Angle (deg.).meansigma_m') as f:
         lines = f.readlines()
         wmms = float(lines[0].split()[-1])
     ws = wm - wmms
@@ -92,7 +96,7 @@ TODO: Replace as relevant
 tm = 68.64733643998947
 ts = 2.8641181142036785
 
-
+import pdb; pdb.set_trace()
 
 for key, cdict in datdict.items():
     plt.plot(cdict['s'], abs(cdict['mean']-tm), label = f"KL {cdict['KL']}, {cdict['qtype']}")
