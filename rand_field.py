@@ -39,26 +39,26 @@ def unbiased_sample_cov_estimator(datat, norm = True):
         mat += outer/fac
         # import pdb; pdb.set_trace()
 
-    if 0:
-        import matplotlib.pyplot as plt
-        from matplotlib import colors
-        from matplotlib import cm
-        plt.rcParams['font.size'] = 16
+    # if 0:
+    #     import matplotlib.pyplot as plt
+    #     from matplotlib import colors
+    #     from matplotlib import cm
+    #     plt.rcParams['font.size'] = 16
 
-        # make indices altitude?
-        cmap = cm.coolwarm
-        plt.matshow(mat, cmap=cmap, norm=colors.CenteredNorm())
-        plt.xlabel('Altitude Index')
-        plt.ylabel('Altitude Index')
-        plt.colorbar()
-        plt.savefig('covmat.png', bbox_inches='tight')
-        plt.clf()
-        plt.scatter(np.arange(0,N), np.linalg.eig(mat)[0])
-        plt.xlabel('Sorted Eigenvalue Index')
-        plt.ylabel('Eigenvalue')
-        plt.savefig('eigdecay.png', bbox_inches='tight')
-        plt.clf()
-        import pdb; pdb.set_trace()
+    #     # make indices altitude?
+    #     cmap = cm.coolwarm
+    #     plt.matshow(mat, cmap=cmap, norm=colors.CenteredNorm())
+    #     plt.xlabel('Altitude Index')
+    #     plt.ylabel('Altitude Index')
+    #     plt.colorbar()
+    #     plt.savefig('covmat.png', bbox_inches='tight')
+    #     plt.clf()
+    #     plt.scatter(np.arange(0,N), np.linalg.eig(mat)[0])
+    #     plt.xlabel('Sorted Eigenvalue Index')
+    #     plt.ylabel('Eigenvalue')
+    #     plt.savefig('eigdecay.png', bbox_inches='tight')
+    #     plt.clf()
+    #     import pdb; pdb.set_trace()
     return means, mat
 
 # produce 
@@ -143,7 +143,7 @@ def get_kl_coefficients(datat, norm=False):
     # ALTERNATIVELY, NUMERICALLY
     meansest, covest = unbiased_sample_cov_estimator(datat, norm=norm)
     eigval, eigvec = np.linalg.eig(covest)
-    return eigval, eigvec
+    return eigval, eigvec, covest
 
 
 if __name__ == '__main__':

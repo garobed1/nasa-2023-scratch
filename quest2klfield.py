@@ -31,23 +31,23 @@ HUMIDITY_path_1 H1
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-v', '--verbose', action='store_true') 
-parser.add_argument('-p', '--plot', action='store_true') 
-parser.add_argument('-P', '--superplot', action='store_true') 
-parser.add_argument('-d', '--datadir', action='store')
+parser.add_argument('-p', '--plot', action='store_true', help = 'produce relevant plots') 
+parser.add_argument('-P', '--superplot', action='store_true', help = 'extra plotting flag, not important') 
+parser.add_argument('-d', '--datadir', action='store', help = 'file containing correlated original data in JSON format')
 # if given, don't convert humidity to dew point temperature, create KL, then convert back 
 # not recommended, better to convert to dew point using corresponding temp
-parser.add_argument('-hd', '--donthumiditytodew', action='store_true')
+parser.add_argument('-hd', '--donthumiditytodew', action='store_true', help = 'dont convert humidity to dew point (or anything else)')
 
 # write mean, sigma, m+1s, m-1s alongside each path (Quest likes this format)
-parser.add_argument('-ws', '--writeoriginalstats', action='store_true')
+parser.add_argument('-ws', '--writeoriginalstats', action='store_true', help = 'write out the statistics of the original data to file')
 
 # exclude a number of data points at the upper atmosphere 
 # last 4 points constitute data above ~61000 feet
-parser.add_argument('-e', '--exclude_upper', action='store', type=int, default=0)
+parser.add_argument('-e', '--exclude_upper', action='store', type=int, default=0, help = 'exclude a number of upper atmosphere points')
 # if true, measure mean, stdv, and PDF error (at each altitude)
-parser.add_argument('-m', '--measure_error', action='store_true')
+# parser.add_argument('-m', '--measure_error', action='store_true')
 
-parser.add_argument('-n', '--numpoints', default=0) # if 0, use mean of altitudes as grid
+parser.add_argument('-n', '--numpoints', default=0, help = 'underused option, set to non zero to set number of points in linear resampling of correlated data') # if 0, use mean of altitudes as grid
 args = parser.parse_args()
 verbose = args.verbose
 Ngrid = args.numpoints
@@ -56,7 +56,7 @@ spflag = args.superplot
 datadir = args.datadir
 exclude = args.exclude_upper
 hd = args.donthumiditytodew
-me = args.measure_error
+# me = args.measure_error
 ws = args.writeoriginalstats
 # mhflag = args.modelhumidity
 
@@ -80,6 +80,8 @@ Ngen = len(os.listdir(case_dir))
 
 if pflag:
     import matplotlib.pyplot as plt
+    from matplotlib import cm, colors
+
     # store true, unconverted values in dict format
     plt.rcParams['font.size'] = 16
     ppathgent = {}
@@ -89,7 +91,6 @@ if pflag:
 
 if verbose:
     print(f"Root dir: {root}")
-    # print(f" o Working in {db}")
 
 # first, generate the KL expansion
 if verbose:
@@ -168,7 +169,22 @@ for prop in proplist:
 
 
     # get kl coefficients
-    eigval, eigvec = get_kl_coefficients(datat, norm=False)
+    eigval, eigvec, mat = get_kl_coefficients(datat, norm=False)
+
+    if pflag:
+        cmap = cm.coolwarm
+        plt.matshow(mat, cmap=cmap, norm=colors.CenteredNorm())
+        plt.xlabel('Altitude Index')
+        plt.ylabel('Altitude Index')
+        plt.colorbar()
+        plt.savefig(f'{prop}covmat.png', bbox_inches='tight')
+        plt.clf()
+        plt.scatter(np.arange(0,N), np.linalg.eig(mat)[0])
+        plt.xlabel('Sorted Eigenvalue Index')
+        plt.ylabel('Eigenvalue')
+        plt.savefig(f'{prop}eigdecay.png', bbox_inches='tight')
+        plt.clf()
+
 
     if verbose:
         print(f"Generating {prop} profiles for all cases")
@@ -479,76 +495,76 @@ for prop in proplist:
                         wf.write(f'{paltitudes[i]} {mpm1s[i,1]}\n')
 
 
-    if me and trunc:
-        # mean l2 error
-        # means is true
-        # stdvs is true
-        # get true pdf
-        sig = 3
-        nsamp = 2000
+#     if me and trunc:
+#         # mean l2 error
+#         # means is true
+#         # stdvs is true
+#         # get true pdf
+#         sig = 3
+#         nsamp = 2000
 
-        kdetv = np.zeros([N, nsamp])
-        xs = np.zeros([N,nsamp])
-        for i in range(N):
-            x = np.linspace(means[i]-sig*stdvs[i], means[i]+sig*stdvs[i], nsamp)
-            kde = gaussian_kde(datat[i,:], bw_method='silverman')
-            kdetv[i,:] = kde.pdf(x)
-            xs[i,:] = x
+#         kdetv = np.zeros([N, nsamp])
+#         xs = np.zeros([N,nsamp])
+#         for i in range(N):
+#             x = np.linspace(means[i]-sig*stdvs[i], means[i]+sig*stdvs[i], nsamp)
+#             kde = gaussian_kde(datat[i,:], bw_method='silverman')
+#             kdetv[i,:] = kde.pdf(x)
+#             xs[i,:] = x
 
-        # now get realization stats (MC ONLY)
-        meansm = np.mean(pathgent, axis=1)
-        stdvsm = np.std(pathgent, axis=1)
+#         # now get realization stats (MC ONLY)
+#         meansm = np.mean(pathgent, axis=1)
+#         stdvsm = np.std(pathgent, axis=1)
 
-        kdemv = np.zeros([N,nsamp])
-        for i in range(N):
-            kde = gaussian_kde(pathgent[i,:], bw_method='silverman')
-            kdemv[i,:] = kde.pdf(xs[i,:])
+#         kdemv = np.zeros([N,nsamp])
+#         for i in range(N):
+#             kde = gaussian_kde(pathgent[i,:], bw_method='silverman')
+#             kdemv[i,:] = kde.pdf(xs[i,:])
         
-        means_err = abs(means-meansm)
-        stdvs_err = abs(stdvs-stdvsm)
-        pdfs_err = np.sum(abs(kdetv-kdemv), axis=1)
-        print('Means Error')
-        print(means_err)
-        print('Stdvs Error')
-        print(stdvs_err)
-        print('PDF Error')
-        print(pdfs_err)
+#         means_err = abs(means-meansm)
+#         stdvs_err = abs(stdvs-stdvsm)
+#         pdfs_err = np.sum(abs(kdetv-kdemv), axis=1)
+#         print('Means Error')
+#         print(means_err)
+#         print('Stdvs Error')
+#         print(stdvs_err)
+#         print('PDF Error')
+#         print(pdfs_err)
 
-        # write to file
-        with open(root + f'/{prop}_stat_errs.txt' , 'w') as wf:
-                for i in range(N):
-                    wf.write(f'{altitudes[i]} {means_err[i]} {stdvs_err[i]} {pdfs_err[i]}\n')
+#         # write to file
+#         with open(root + f'/{prop}_stat_errs.txt' , 'w') as wf:
+#                 for i in range(N):
+#                     wf.write(f'{altitudes[i]} {means_err[i]} {stdvs_err[i]} {pdfs_err[i]}\n')
 
-        import matplotlib as mpl
-        import matplotlib.pyplot as plt
-        colourmap = mpl.colormaps['rainbow']
-        # plt.figure().set_figheight(9.6)
-        plt.figure().set_figheight(4.8)
-        # plt.plot(meansm, altitudes, 'b-', linewidth=1.1)
-        # plt.plot(meansm + stdvsm, altitudes, 'b--', linewidth=1.1)
-        # plt.plot(meansm - stdvsm, altitudes, 'b--', linewidth=1.1)
-        altind = 9
-        for j in [altind]:#range(N):
-            maxer = np.max(kdetv[j,:])
-            plt.plot(xs[j,:], kdetv[j,:], 'k-', label=f'Data PDF ({altitudes[altind]:.1f} thousand)') #/maxer + altitudes[j]
-            for i in range(nsamp - 1):
-                # y2 = [altitudes[j], altitudes[j]]
-                # y1 = [kdemv[j,i]/maxer+y2[0], kdemv[j,i+1]/maxer+y2[1]]
-                y1 = [kdemv[j,i], kdemv[j,i+1]]
-                plt.fill_between([xs[j,i], xs[j,i+1]],
-                                 y1,
-                                #  y2,
-                                 color=colourmap(kdemv[j,i]/np.max(kdemv[3,:]))
-                                 ,alpha=0.6)
-        plt.title(f'{prop} PDF at {altitudes[altind]:.1f} thousand ft')
-        plt.ylabel(f'PDF({pprop2label[prop]})')
-        plt.xlabel(pprop2label[prop])
-        plt.savefig(f'{root}/{prop}_t{trunc}_{casecounter}_cases_PDF_comp.png', bbox_inches="tight", dpi=500)
-
-
+#         import matplotlib as mpl
+#         import matplotlib.pyplot as plt
+#         colourmap = mpl.colormaps['rainbow']
+#         # plt.figure().set_figheight(9.6)
+#         plt.figure().set_figheight(4.8)
+#         # plt.plot(meansm, altitudes, 'b-', linewidth=1.1)
+#         # plt.plot(meansm + stdvsm, altitudes, 'b--', linewidth=1.1)
+#         # plt.plot(meansm - stdvsm, altitudes, 'b--', linewidth=1.1)
+#         altind = 9
+#         for j in [altind]:#range(N):
+#             maxer = np.max(kdetv[j,:])
+#             plt.plot(xs[j,:], kdetv[j,:], 'k-', label=f'Data PDF ({altitudes[altind]:.1f} thousand)') #/maxer + altitudes[j]
+#             for i in range(nsamp - 1):
+#                 # y2 = [altitudes[j], altitudes[j]]
+#                 # y1 = [kdemv[j,i]/maxer+y2[0], kdemv[j,i+1]/maxer+y2[1]]
+#                 y1 = [kdemv[j,i], kdemv[j,i+1]]
+#                 plt.fill_between([xs[j,i], xs[j,i+1]],
+#                                  y1,
+#                                 #  y2,
+#                                  color=colourmap(kdemv[j,i]/np.max(kdemv[3,:]))
+#                                  ,alpha=0.6)
+#         plt.title(f'{prop} PDF at {altitudes[altind]:.1f} thousand ft')
+#         plt.ylabel(f'PDF({pprop2label[prop]})')
+#         plt.xlabel(pprop2label[prop])
+#         plt.savefig(f'{root}/{prop}_t{trunc}_{casecounter}_cases_PDF_comp.png', bbox_inches="tight", dpi=500)
 
 
-# find out how many variables were given in QUEST
 
-# naming convention
-# KL_{prop}_{num}
+
+# # find out how many variables were given in QUEST
+
+# # naming convention
+# # KL_{prop}_{num}
